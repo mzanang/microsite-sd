@@ -19,6 +19,8 @@ export const defaultConfig: MicrositeConfig = {
     page_background: "#F6F3EC",
     text_color: "#19342B",
     font_family: "poppins",
+    site_title_font_family: "poppins",
+    site_title_text_weight: "normal",
     content_width: "standard",
     card_radius: "soft",
     element_spacing: "comfortable",

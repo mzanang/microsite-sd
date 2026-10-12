@@ -4,7 +4,7 @@ import type { MicrositeConfig } from "@/types/microsite";
 
 function normalizeSettings(value: Partial<MicrositeConfig["settings"]>) {
   const merged = { ...defaultConfig.settings, ...value };
-  return { ...merged, background_url: merged.background_url || "/bg_hero.webp", logo_url: merged.logo_url || "/logo.png", link_layout: merged.link_layout ?? "stacked" };
+  return { ...merged, background_url: merged.background_url || "/bg_hero.webp", logo_url: merged.logo_url || "/logo.png", link_layout: merged.link_layout ?? "stacked", site_title_font_family: merged.site_title_font_family ?? defaultConfig.settings.site_title_font_family, site_title_text_weight: merged.site_title_text_weight ?? defaultConfig.settings.site_title_text_weight };
 }
 
 export async function getPublishedConfig(): Promise<MicrositeConfig> {

@@ -11,6 +11,19 @@ Microsite sekolah berbasis Next.js App Router, TypeScript, Tailwind CSS, Supabas
 
 Tanpa environment Supabase, halaman publik memakai konfigurasi lokal yang aman untuk preview visual. Operasi draf/publikasi tetap menolak request sampai Supabase dikonfigurasi.
 
+## Deploy ke Vercel
+
+1. Import repository `https://github.com/mzanang/microsite-sd.git` ke Vercel.
+2. Pilih framework **Next.js** dan biarkan Build Command memakai `npm run build`.
+3. Tambahkan environment variables berikut untuk **Production**, **Preview**, dan **Development**:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL` dengan URL deployment Vercel, misalnya `https://nama-proyek.vercel.app`
+4. Deploy, lalu jalankan migration Supabase melalui SQL Editor sebelum memakai halaman admin.
+5. Setelah domain Vercel aktif, tambahkan URL deployment tersebut ke Supabase Auth URL Configuration sebagai Site URL dan Redirect URL bila login admin dipakai.
+
+`SUPABASE_SERVICE_ROLE_KEY` tidak diperlukan oleh runtime aplikasi ini dan jangan dimasukkan ke client-side code. Jika dipakai untuk tooling terpisah, simpan hanya sebagai environment variable server.
+
 ## Environment variables
 
 - `NEXT_PUBLIC_SUPABASE_URL`: URL project Supabase.

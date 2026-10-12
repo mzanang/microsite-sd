@@ -5,7 +5,7 @@ export type SocialContact = {
   label: string;
   value: string;
   href: string;
-  icon: "instagram" | "youtube" | "mail" | "whatsapp" | "phone" | "globe";
+  icon: "instagram" | "youtube" | "tiktok" | "mail" | "whatsapp" | "phone" | "globe";
   is_enabled: boolean;
 };
 
@@ -28,6 +28,8 @@ export type MicrositeSettings = {
   page_background: string;
   text_color: string;
   font_family: "poppins" | "plus-jakarta" | "inter" | "dm-sans";
+  site_title_font_family: "poppins" | "plus-jakarta" | "inter" | "dm-sans";
+  site_title_text_weight: "normal" | "semibold" | "bold";
   content_width: "narrow" | "standard" | "wide";
   card_radius: "soft" | "round" | "sharp";
   element_spacing: "compact" | "comfortable" | "airy";

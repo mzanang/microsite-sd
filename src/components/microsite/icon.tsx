@@ -1,8 +1,8 @@
-import { BookOpen, Code2, Globe2, ImageIcon, Instagram, Landmark, Library, Link2, Mail, MapPin, MessageCircle, Minus, Phone, Play, Send, Text, Youtube } from "lucide-react";
+import { BookOpen, Code2, Globe2, ImageIcon, Instagram, Landmark, Library, Link2, Mail, MapPin, MessageCircle, Minus, Music2, Phone, Play, Send, Text, Youtube } from "lucide-react";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 
-const icons: Record<string, LucideIcon> = { "book-open": BookOpen, landmark: Landmark, "message-circle": MessageCircle, library: Library, instagram: Instagram, youtube: Youtube, mail: Mail, whatsapp: Send, phone: Phone, globe: Globe2, map: MapPin, play: Play, link: Link2, text: Text, image: ImageIcon, embed: Code2, divider: Minus };
+const icons: Record<string, LucideIcon> = { "book-open": BookOpen, landmark: Landmark, "message-circle": MessageCircle, library: Library, instagram: Instagram, youtube: Youtube, tiktok: Music2, mail: Mail, whatsapp: Send, phone: Phone, globe: Globe2, map: MapPin, play: Play, link: Link2, text: Text, image: ImageIcon, embed: Code2, divider: Minus };
 
 export function AppIcon({ name, size = 20 }: { name: string; size?: number }) {
   const Icon = icons[name] ?? Globe2;
