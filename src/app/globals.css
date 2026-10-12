@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; --font-poppins: Arial, sans-serif; }
+* { box-sizing: border-box; }
+html { background: #f6f3ec; }
+body { margin: 0; font-family: var(--font-poppins), Arial, sans-serif; }
+a, button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+::selection { background: #d7864a; color: #fff; }
+.section-kicker { font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: rgba(25,52,43,.48); }
+.admin-scrollbar::-webkit-scrollbar { width: 8px; }
+.admin-scrollbar::-webkit-scrollbar-thumb { background: #d9e1d9; border-radius: 20px; }
+[data-aos-ready="true"] [data-aos] { opacity: 0; transform: translateY(18px); transition: opacity .55s ease, transform .55s ease; transition-delay: var(--aos-delay, 0ms); }
+[data-aos-ready="true"] [data-aos="fade-in"] { transform: none; }
+[data-aos-ready="true"] [data-aos].is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { [data-aos-ready="true"] [data-aos] { opacity: 1; transform: none; transition: none; } }
+@keyframes microsite-card-fade { from { opacity: .55; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.contact-card-fade { animation: microsite-card-fade .45s ease both; }
+.contact-card-glow:hover { transform: translateY(-2px); filter: brightness(1.04); box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 28%, transparent) !important; }
+@media (prefers-reduced-motion: reduce) { .contact-card-fade { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .contact-card-glow:hover { transform: none; filter: none; } }
