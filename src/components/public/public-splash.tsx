@@ -92,7 +92,6 @@ export function PublicSplash() {
           <Image className="splash-logo" src="/logo.png" alt="" priority width={96} height={96} sizes="96px" />
         </div>
         <p className="splash-school-name">SD NEGERI DUKUHWARU 01</p>
-        <p className="splash-subtitle">Administrasi Kunjungan Sekolah</p>
 
         <svg className="guestbook-title-svg portal-title-svg" viewBox="0 0 1010 120" role="img" aria-label="PORTAL SEKOLAH">
           <defs><linearGradient id="portalTitleGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#48B8FF" /><stop offset="40%" stopColor="#FFFFFF" /><stop offset="75%" stopColor="#81D8FF" /><stop offset="100%" stopColor="#4CA9FF" /></linearGradient></defs>

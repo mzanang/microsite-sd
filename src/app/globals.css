@@ -60,7 +60,7 @@ button, a { touch-action: manipulation; }
 .splash-loader-spin { stroke-width: 1.4; stroke-dasharray: 96 264; opacity: .95; }
 .splash-school-name { margin: .45rem 0 0; font-size: clamp(1rem, 2vw, 1.45rem); font-weight: 800; letter-spacing: .06em; text-shadow: 0 2px 14px rgba(0, 0, 0, .18); }
 .splash-subtitle { margin: .35rem 0 0; color: rgba(190, 221, 255, .82); font-size: clamp(.75rem, 1.3vw, .95rem); }
-.guestbook-title-svg { display: block; width: min(82vw, 700px); height: auto; margin-top: 2rem; overflow: visible; }
+.guestbook-title-svg { display: block; width: min(82vw, 700px); height: auto; margin-top: 1.25rem; overflow: visible; }
 .portal-title-svg { width: min(90vw, 720px); }
 .guestbook-letter { font-family: var(--font-plus-jakarta), Arial, sans-serif; font-size: 56px; font-weight: 700; letter-spacing: .02em; stroke-width: 2.3; stroke-dasharray: 360; stroke-dashoffset: 360; filter: drop-shadow(0 0 7px rgba(80, 193, 255, .85)); animation: guestbook-draw .72s cubic-bezier(.4, 0, .2, 1) forwards; }
 .guestbook-letter:nth-of-type(2) { animation-delay: .06s; } .guestbook-letter:nth-of-type(3) { animation-delay: .12s; }
@@ -84,5 +84,5 @@ button, a { touch-action: manipulation; }
 @keyframes splash-bubble-drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(10px, 8px) scale(1.03); } }
 @keyframes splash-particle-pulse { 0%, 100% { opacity: .35; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.5); } }
 @keyframes splash-dot-pulse { 0%, 100% { opacity: .35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
-@media (max-width: 640px) { .splash-content { padding-bottom: 5rem; } .splash-logo-stage { height: 124px; width: 124px; } .splash-logo { height: 70px; width: 70px; } .guestbook-title-svg { margin-top: 1.4rem; } .guestbook-letter { font-size: 54px; stroke-width: 2.1; } .bottom-waves { height: 24%; min-height: 140px; } .splash-top-wave { height: 20%; min-height: 110px; } }
+@media (max-width: 640px) { .splash-content { padding-bottom: 5rem; } .splash-logo-stage { height: 124px; width: 124px; } .splash-logo { height: 70px; width: 70px; } .guestbook-title-svg { margin-top: .9rem; } .guestbook-letter { font-size: 54px; stroke-width: 2.1; } .bottom-waves { height: 24%; min-height: 140px; } .splash-top-wave { height: 20%; min-height: 110px; } }
 @media (prefers-reduced-motion: reduce) { .public-splash *, .public-splash *::before, .public-splash *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } .guestbook-letter { stroke-dashoffset: 0; } .public-splash { transition: none; } }

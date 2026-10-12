@@ -24,9 +24,9 @@ export const metadata: Metadata = {
     siteName: "SD Negeri Dukuhwaru 01",
     title: "SD Negeri Dukuhwaru 01",
     description: "Microsite resmi SD Negeri Dukuhwaru 01",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "SD Negeri Dukuhwaru 01" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "SD Negeri Dukuhwaru 01" }],
   },
-  twitter: { card: "summary_large_image", title: "SD Negeri Dukuhwaru 01", description: "Microsite resmi SD Negeri Dukuhwaru 01", images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: "SD Negeri Dukuhwaru 01", description: "Microsite resmi SD Negeri Dukuhwaru 01", images: ["/og-image.png"] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
