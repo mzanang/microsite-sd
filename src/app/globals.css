@@ -37,6 +37,7 @@ button, a { touch-action: manipulation; }
 .icon-shape-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); border-radius: 0 !important; }
 .icon-shape-hexagon { clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%); border-radius: 0 !important; }
 .icon-shape-squircle { border-radius: 2rem !important; }
+.icon-shape-organic { border-radius: 2.25rem 1rem 2.5rem 1rem !important; }
 .button-effect-glow:hover, .button-effect-glow:focus-visible, .button-effect-glow:active { box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 38%, transparent); }
 .button-effect-shine:hover, .button-effect-shine:focus-visible, .button-effect-shine:active { animation: microsite-button-shine var(--button-effect-duration, .7s) ease 2 !important; }
 .button-effect-pulse:hover, .button-effect-pulse:focus-visible, .button-effect-pulse:active { animation: microsite-button-pulse var(--button-effect-duration, .7s) ease 2 !important; }

@@ -33,7 +33,7 @@ export const defaultConfig: MicrositeConfig = {
     link_layout: "stacked",
     card_background: "#FFFFFF",
     card_text_color: "#19342B",
-    card_muted_color: "#6B8077",
+    card_muted_color: "#4C6258",
     card_border_color: "#FFFFFF",
     card_font_family: "poppins",
     card_title_size: "medium",
@@ -63,7 +63,7 @@ export const defaultConfig: MicrositeConfig = {
     intro_font_family: "poppins",
     intro_text_size: "medium",
     intro_text_weight: "normal",
-    intro_text_color: "#6B8077",
+    intro_text_color: "#4C6258",
     hero_profile_position: "bottom",
   },
   services: [

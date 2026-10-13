@@ -34,7 +34,7 @@ export type MicrositeSettings = {
   site_title_font_family: "poppins" | "plus-jakarta" | "inter" | "dm-sans";
   site_title_text_weight: "normal" | "semibold" | "bold";
   content_width: "narrow" | "standard" | "wide";
-  card_radius: "soft" | "round" | "sharp" | "pill" | "organic" | "square";
+  card_radius: "soft" | "round" | "sharp" | "pill" | "organic" | "square" | "circle" | "diamond" | "hexagon" | "squircle";
   element_spacing: "compact" | "comfortable" | "airy";
   card_style: "solid" | "outline" | "tinted" | "glass" | "elevated" | "dashed";
   overlay_opacity: number;
@@ -61,7 +61,7 @@ export type MicrositeSettings = {
   button_effect_trigger: "interaction" | "idle" | "both";
   icon_card_mode: "separate" | "integrated" | "separate-icon" | "separate-card";
   icon_background: "card" | "none";
-  icon_shape: "square" | "rounded" | "circle" | "pill" | "diamond" | "hexagon" | "squircle";
+  icon_shape: "square" | "rounded" | "circle" | "pill" | "diamond" | "hexagon" | "squircle" | "bubble" | "organic" | "none";
   icon_color_mode: "primary" | "accent" | "custom";
   icon_color: string;
   icon_size: "small" | "medium" | "large";
