@@ -19,5 +19,5 @@ export function QuickPublishButton({ config }: { config: MicrositeConfig }) {
       notifyAdmin(error instanceof Error ? error.message : "Publikasi gagal.", "error");
     } finally { setBusy(false); }
   }
-  return <button onClick={publish} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-moss px-4 text-sm font-bold text-moss transition hover:bg-moss/5 disabled:cursor-wait disabled:opacity-60">{busy ? <LoaderCircle size={16} className="animate-spin" /> : <Send size={16} />} {busy ? "Menerbitkan..." : "Simpan & publikasikan"}</button>;
+  return <button onClick={publish} disabled={busy} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-moss px-4 text-sm font-bold text-moss transition hover:bg-moss/5 disabled:cursor-wait disabled:opacity-60">{busy ? <LoaderCircle size={16} className="animate-spin" /> : <Send size={16} />} {busy ? "Menerbitkan..." : "Simpan & publikasikan"}</button>;
 }

@@ -4,7 +4,9 @@ import type { MicrositeConfig } from "@/types/microsite";
 
 function normalizeSettings(value: Partial<MicrositeConfig["settings"]>) {
   const merged = { ...defaultConfig.settings, ...value };
-  return { ...merged, background_url: merged.background_url || "/bg_hero.webp", logo_url: merged.logo_url || "/logo.png", link_layout: merged.link_layout ?? "stacked", site_title_font_family: merged.site_title_font_family ?? defaultConfig.settings.site_title_font_family, site_title_text_weight: merged.site_title_text_weight ?? defaultConfig.settings.site_title_text_weight };
+  const linkLayouts = ["stacked", "horizontal", "compact", "cards", "spotlight"] as const;
+  const linkLayout = linkLayouts.includes(merged.link_layout as typeof linkLayouts[number]) ? merged.link_layout : "stacked";
+  return { ...merged, background_url: merged.background_url || "/bg_hero.webp", logo_url: merged.logo_url || "/logo.png", link_layout: linkLayout, site_title_font_family: merged.site_title_font_family ?? defaultConfig.settings.site_title_font_family, site_title_text_weight: merged.site_title_text_weight ?? defaultConfig.settings.site_title_text_weight };
 }
 
 export async function getPublishedConfig(): Promise<MicrositeConfig> {
@@ -52,4 +54,36 @@ export async function getAdminConfig(): Promise<MicrositeConfig> {
     contacts: ((contactComponent?.config as { contacts?: MicrositeConfig["contacts"] })?.contacts ?? defaultConfig.contacts),
     components: rawComponents.map((item) => ({ id: item.id, type: item.component_type as MicrositeConfig["components"][number]["type"], title: item.title, is_enabled: item.is_enabled, sort_order: item.sort_order, config: (item.config ?? {}) as Record<string, unknown> })),
   };
+}
+
+export type AdminDashboardAnalytics = {
+  totals: { visits: number; unique_visitors: number; page_views: number; interactions: number };
+  trend: Array<{ bucket: string; visits: number; unique_visitors: number; page_views: number; interactions: number }>;
+};
+
+export async function getAdminAnalyticsSnapshot(): Promise<AdminDashboardAnalytics> {
+  const empty = { totals: { visits: 0, unique_visitors: 0, page_views: 0, interactions: 0 }, trend: [] };
+  if (!supabaseConfigured()) return empty;
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+    const today = `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
+    const to = new Date(`${today}T00:00:00+07:00`);
+    to.setUTCDate(to.getUTCDate() + 1);
+    const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("get_analytics_summary", { p_microsite_slug: "sd-negeri-dukuhwaru-01", p_from: from.toISOString(), p_to: to.toISOString(), p_granularity: "day" });
+    if (error) return empty;
+    const summary = data as { totals?: Partial<AdminDashboardAnalytics["totals"]>; trend?: AdminDashboardAnalytics["trend"] } | null;
+    return {
+      totals: {
+        visits: Number(summary?.totals?.visits ?? 0),
+        unique_visitors: Number(summary?.totals?.unique_visitors ?? 0),
+        page_views: Number(summary?.totals?.page_views ?? 0),
+        interactions: Number(summary?.totals?.interactions ?? 0),
+      },
+      trend: Array.isArray(summary?.trend) ? summary.trend.map((item) => ({ bucket: String(item.bucket), visits: Number(item.visits ?? 0), unique_visitors: Number(item.unique_visitors ?? 0), page_views: Number(item.page_views ?? 0), interactions: Number(item.interactions ?? 0) })) : [],
+    };
+  } catch {
+    return empty;
+  }
 }
