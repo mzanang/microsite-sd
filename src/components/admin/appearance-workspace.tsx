@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Palette, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Check, Clock3, Palette, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { MicrositeConfig } from "@/types/microsite";
 import { defaultConfig } from "@/lib/default-config";
@@ -36,7 +36,7 @@ export function AppearanceWorkspace({ initialConfig }: { initialConfig: Microsit
     setConfig((current) => ({ ...current, components: current.components.map((component) => component.id === selectedSection.id ? { ...component, title: value } : component) }));
     setStatus("");
   };
-  const set = (key: string, value: string | number) => {
+  const set = (key: string, value: unknown) => {
     setConfig((current) => ({ ...current, settings: { ...current.settings, [key]: value } }));
     setStatus("");
   };
@@ -66,6 +66,7 @@ export function AppearanceWorkspace({ initialConfig }: { initialConfig: Microsit
           <BackgroundPreview settings={config.settings} />
         </section>
         <div className="grid items-start gap-6 xl:grid-cols-2">
+        <div className="min-w-0 space-y-6">
         <section className="min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-5 sm:p-7">
           <div className="mb-6"><p className="section-kicker">Judul section</p><h2 className="mt-2 font-display text-2xl">Judul dan deskripsi</h2><p className="mt-2 text-sm leading-6 text-ink/55">Atur teks section dan seluruh gaya tipografinya dari satu tempat.</p></div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -85,6 +86,19 @@ export function AppearanceWorkspace({ initialConfig }: { initialConfig: Microsit
             <ColorField label="Warna deskripsi" value={String(sectionValues.description_color ?? config.settings.card_muted_color)} onChange={(value) => setSection("description_color", value)} />
           </div>
         </section>
+         <section className="min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-5 sm:p-7">
+           <div className="mb-6 flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2563A6]/10 text-[#2563A6]"><Clock3 size={19} /></span><div><p className="section-kicker">Waktu realtime</p><h2 className="mt-2 font-display text-2xl">Gaya jam dan tanggal</h2><p className="mt-2 text-sm leading-6 text-ink/55">Atur informasi waktu yang tampil di bawah identitas sekolah.</p></div></div>
+           <div className="grid gap-5 sm:grid-cols-2">
+             <Select label="Format informasi" value={config.settings.time_format} onChange={(value) => set("time_format", value)} options={[["weekday-date-time", "Hari, tanggal · jam"], ["date-time", "Tanggal · jam"], ["weekday-time", "Hari · jam"], ["time-only", "Jam saja"]]} />
+             <Select label="Tata letak" value={config.settings.time_layout} onChange={(value) => set("time_layout", value)} options={[["single", "Satu baris"], ["split", "Hari/tanggal kiri · jam kanan"]]} />
+             <Select label="Pemisah" value={config.settings.time_separator} onChange={(value) => set("time_separator", value)} options={[["dot", "Titik tengah ·"], ["dash", "Garis panjang —"], ["slash", "Garis miring /"], ["line", "Garis vertikal"], ["none", "Tanpa pemisah"]]} />
+             <Select label="Bentuk waktu" value={config.settings.time_style} onChange={(value) => set("time_style", value)} options={[["card", "Mengikuti gaya kartu"], ["pill", "Pill"], ["outline", "Outline"], ["minimal", "Minimal"]]} />
+             <Select label="Peletakan" value={config.settings.time_position} onChange={(value) => set("time_position", value)} options={[["left", "Kiri"], ["center", "Tengah"], ["right", "Kanan"]]} />
+             <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={config.settings.time_show_timezone} onChange={(event) => set("time_show_timezone", event.target.checked)} className="h-4 w-4 accent-[#2563A6]" /><span><span className="block text-sm font-bold">Tampilkan WIB</span><span className="block text-xs leading-5 text-ink/45">Tambahkan label zona waktu Asia/Jakarta.</span></span></label>
+             <div className="sm:col-span-2"><p className="mb-2 text-xs font-bold text-ink/55">Pratinjau</p><div className={`flex min-h-14 items-center bg-[#082b62] px-4 text-sm font-semibold text-[#b8d7ff] ${config.settings.time_position === "left" ? "justify-start" : config.settings.time_position === "right" ? "justify-end" : "justify-center"} ${config.settings.time_style === "pill" ? "rounded-full" : config.settings.time_style === "minimal" ? "rounded-none border-b border-[#b8d7ff]/30" : "rounded-xl"}`}>{previewTimeLabel(config.settings)}</div></div>
+           </div>
+         </section>
+         </div>
         <section className="min-w-0 rounded-[1.5rem] border border-ink/10 bg-white p-5 sm:p-7">
           <div className="mb-6"><p className="section-kicker">Gaya kartu</p><h2 className="mt-2 font-display text-2xl">Kartu komponen</h2><p className="mt-2 text-sm leading-6 text-ink/55">Pengaturan ini dipakai pada link, kontak, teks, dan komponen lain.</p></div>
           <div className="grid gap-5 sm:grid-cols-2">
@@ -136,6 +150,17 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><div className="flex h-11 items-center gap-3 rounded-lg border border-ink/10 bg-paper/50 px-3"><input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-7 w-7 cursor-pointer rounded-md border-0 bg-transparent p-0" /><span className="text-sm font-semibold">{value}</span></div></label>; }
 function RangeField({ label, value, min = 0.04, max = 0.8, step = 0.01, onChange }: { label: string; value: number; min?: number; max?: number; step?: number; onChange: (value: number) => void }) { const safeValue = Number.isFinite(value) ? value : min; const isPercentage = max <= 1; return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><div className="flex h-11 items-center gap-3 rounded-lg border border-ink/10 bg-paper/50 px-3"><input type="range" min={min} max={max} step={step} value={safeValue} onChange={(event) => onChange(Number(event.target.value))} className="w-full accent-[#2F6B55]" /><span className="w-12 text-right text-sm font-semibold">{isPercentage ? `${Math.round(safeValue * 100)}%` : safeValue}</span></div></label>; }
 function Select({ label, value, options, onChange }: { label: string; value: string; options: Array<[string, string]>; onChange: (value: string) => void }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-lg border border-ink/10 bg-paper/50 px-3 text-sm font-semibold outline-none focus:border-moss">{options.map(([option, labelText]) => <option key={option} value={option}>{labelText}</option>)}</select></label>; }
+function previewTimeLabel(settings: MicrositeConfig["settings"]) {
+  const weekday = "Selasa";
+  const date = "13 Oktober 2026";
+  const time = `19:30${settings.time_show_timezone ? " WIB" : ""}`;
+  const separator = settings.time_separator === "dot" ? "·" : settings.time_separator === "dash" ? "—" : settings.time_separator === "slash" ? "/" : settings.time_separator === "line" ? "│" : "";
+  const join = (left: string, right: string) => separator ? `${left} ${separator} ${right}` : `${left} ${right}`;
+  const left = settings.time_format === "time-only" ? "Waktu sekarang" : settings.time_format === "weekday-time" ? weekday : settings.time_format === "date-time" ? date : `${weekday}, ${date}`;
+  if (settings.time_layout === "split") return `${left}${separator ? ` ${separator} ` : " "}${time}`;
+  if (settings.time_format === "time-only") return time;
+  return `${join(left, time)}`;
+}
 function BackgroundPreview({ settings }: { settings: MicrositeConfig["settings"] }) {
   const color = settings.background_animation_color_mode === "accent" ? settings.accent_color : settings.background_animation_color_mode === "custom" ? settings.background_animation_color : settings.primary_color;
   const label = { none: "Animasi nonaktif", float: "Bola mengambang", aurora: "Aurora lembut", gradient: "Gradasi bergerak", particles: "Partikel halus", clouds: "Awan cloud", rain: "Rintik hujan", shimmer: "Kilau shiny", waves: "Efek ombak", snow: "Hujan salju" }[settings.background_animation];

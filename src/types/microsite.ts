@@ -77,6 +77,12 @@ export type MicrositeSettings = {
   intro_text_weight: "normal" | "semibold" | "bold";
   intro_text_color: string;
   hero_profile_position: "bottom" | "center" | "outside";
+  time_format: "weekday-date-time" | "date-time" | "weekday-time" | "time-only";
+  time_layout: "single" | "split";
+  time_separator: "dot" | "dash" | "slash" | "line" | "none";
+  time_show_timezone: boolean;
+  time_style: "card" | "pill" | "outline" | "minimal";
+  time_position: "left" | "center" | "right";
 };
 
 export type MicrositeConfig = {

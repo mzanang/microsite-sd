@@ -42,7 +42,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
   const cardShape = settings.card_style === "outline" ? "bg-transparent shadow-none" : settings.card_style === "tinted" ? "bg-[var(--card-tint)]" : settings.card_style === "glass" ? "bg-white/35 backdrop-blur-md" : settings.card_style === "elevated" ? "bg-[var(--card-bg)] shadow-[0_18px_42px_rgba(25,52,43,.16)]" : settings.card_style === "dashed" ? "bg-[var(--card-bg)] border-dashed" : "bg-[var(--card-bg)]";
   const card = `border ${cardShape} text-[var(--card-text)] [border-color:var(--card-border)] [box-shadow:var(--card-shadow)] [font-family:var(--card-font)]`;
   const portalBadgeClass = settings.button_style === "card" ? `${card} ${radius}` : `border ${settings.button_style === "pill" ? "rounded-full" : radius}`;
-  const portalBadgeStyle = settings.button_style === "card" ? undefined : { ...buttonStyle(settings), color: "var(--button-text-color)" };
+  const portalBadgeStyle = settings.button_style === "card" ? undefined : { ...buttonStyle(settings), color: themeMode === "dark" ? "#ffffff" : "var(--button-text-color)" };
   const titleText = "text-[length:var(--card-title-size)] font-[var(--card-weight)] text-[var(--card-text)] [font-family:var(--card-font)]";
   const bodyText = "text-[length:var(--card-body-size)] text-[var(--card-muted)] [font-family:var(--card-font)]";
   const spacingClass = settings.element_spacing === "compact" ? "space-y-3" : settings.element_spacing === "airy" ? "space-y-14" : "space-y-10";
@@ -56,6 +56,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
   const profilePosition = settings.hero_profile_position ?? "bottom";
   const backgroundAnimationColor = settings.background_animation_color_mode === "accent" ? "var(--accent)" : settings.background_animation_color_mode === "custom" ? settings.background_animation_color : "var(--primary)";
   const darkMode = themeMode === "dark";
+  const heroBadgeStyle = { ...portalBadgeStyle, backgroundColor: "rgba(255,255,255,.95)", borderColor: darkMode ? "#68a9e8" : "#4e80b7", color: "#123f83", boxShadow: "0 4px 14px rgba(8,43,98,.18)", textShadow: "none" } as React.CSSProperties;
   const readableLightMuted = readableTextColor(settings.card_muted_color, settings.page_background, "#4C6258");
   const readableLightIntro = readableTextColor(settings.intro_text_color, settings.page_background, "#4C6258");
   const cardVars = {
@@ -83,6 +84,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
     "--intro-weight": weightMap[settings.intro_text_weight],
     "--intro-color": darkMode ? "#c5d5ec" : readableLightIntro,
     "--footer-text": darkMode ? "#bfd0e8" : readableLightMuted,
+    "--hero-text": darkMode ? "#b8d7ff" : "#ffffff",
   } as React.CSSProperties;
 
   useEffect(() => {
@@ -176,7 +178,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
     <div className="relative z-10 mx-auto min-h-screen max-w-[1440px] px-4 py-4 sm:px-8 sm:py-8 lg:px-12" style={{ backgroundColor: "color-mix(in srgb, var(--page-bg) 94%, transparent)" }}>
       {settings.background_animation !== "none" && <BackgroundAnimation settings={settings} color={backgroundAnimationColor} />}
       <section data-aos="fade-in" className={`relative z-10 isolate mx-auto aspect-[1701/665] ${profilePosition === "center" ? "overflow-hidden" : profilePosition === "outside" ? "overflow-visible mb-[9rem] sm:mb-[10rem]" : "overflow-visible mb-16"} ${radius} ${contentWidth}`} style={{ backgroundImage: `linear-gradient(rgba(12,46,51,${overlay * 0.45}), rgba(12,46,51,${overlay})), url(${backgroundUrl})`, backgroundPosition: settings.background_position || "center", backgroundSize: "100% 100%" }}>
-        <div className="relative flex h-full flex-col justify-between p-4 text-white sm:p-6"><div className="flex items-start justify-between"><span className={`inline-flex px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.16em] backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-[.2em] ${portalBadgeClass}`} style={portalBadgeStyle}>Portal sekolah</span><div className="relative -right-1 -top-2 flex items-center gap-1 sm:static sm:gap-2"><button onClick={() => setThemeMode((current) => current === "dark" ? "light" : "dark")} aria-label={darkMode ? "Gunakan mode terang" : "Gunakan mode gelap"} title={darkMode ? "Mode terang" : "Mode gelap"} className="group flex h-11 w-11 items-center justify-center rounded-full text-ink transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-lg transition group-hover:bg-white group-hover:-translate-y-0.5 sm:h-11 sm:w-11">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</span></button><button onClick={() => { setShareStatus(""); setModal("share"); }} aria-label="Bagikan microsite" title="Bagikan microsite" className="group flex h-11 w-11 items-center justify-center rounded-full text-ink transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition group-hover:bg-[#f2f7f5] group-hover:-translate-y-0.5 sm:h-11 sm:w-11"><Share2 size={18} /></span></button></div></div><div className={`absolute left-1/2 z-10 -translate-x-1/2 ${profilePosition === "center" ? "top-1/2 -translate-y-1/2" : profilePosition === "outside" ? "top-full mt-4" : "bottom-0 translate-y-1/2"} `}><div className="relative h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36"><div className="absolute inset-0 rounded-full bg-white/85 p-2 shadow-2xl ring-4 ring-white/30"><div className="relative h-full w-full overflow-hidden rounded-full bg-white"><Image src={logoUrl} alt={`Logo ${microsite.title}`} fill sizes="144px" priority className="object-contain p-1" /></div></div><button onClick={() => setModal("verified")} aria-label="Lihat status verifikasi sekolah" title="Sekolah terverifikasi" className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-[#2388f4] text-white shadow-lg transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:h-10 sm:w-10"><Check size={16} strokeWidth={3} /></button></div></div></div>
+        <div className="relative flex h-full flex-col justify-between p-4 text-[var(--hero-text)] sm:p-6"><div className="flex items-start justify-between"><span className={`inline-flex px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.16em] backdrop-blur-sm sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-[.2em] ${portalBadgeClass}`} style={heroBadgeStyle}>Portal sekolah</span><div className="relative -right-1 -top-2 flex items-center gap-1 sm:static sm:gap-2"><button onClick={() => setThemeMode((current) => current === "dark" ? "light" : "dark")} aria-label={darkMode ? "Gunakan mode terang" : "Gunakan mode gelap"} title={darkMode ? "Mode terang" : "Mode gelap"} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-ink shadow-lg transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">{darkMode ? <Sun size={19} /> : <Moon size={19} />}</button><button onClick={() => { setShareStatus(""); setModal("share"); }} aria-label="Bagikan microsite" title="Bagikan microsite" className="group flex h-11 w-11 items-center justify-center rounded-full text-ink transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-lg transition group-hover:bg-[#f2f7f5] group-hover:-translate-y-0.5 sm:h-11 sm:w-11"><Share2 size={18} /></span></button></div></div><div className={`absolute left-1/2 z-10 -translate-x-1/2 ${profilePosition === "center" ? "top-1/2 -translate-y-1/2" : profilePosition === "outside" ? "top-full mt-4" : "bottom-0 translate-y-1/2"} `}><div className="relative h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36"><div className="absolute inset-0 rounded-full bg-white/85 p-2 shadow-2xl ring-4 ring-white/30"><div className="relative h-full w-full overflow-hidden rounded-full bg-white"><Image src={logoUrl} alt={`Logo ${microsite.title}`} fill sizes="144px" priority className="object-contain p-1" /></div></div><button onClick={() => setModal("verified")} aria-label="Lihat status verifikasi sekolah" title="Sekolah terverifikasi" className="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-[#2388f4] text-white shadow-lg transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:h-10 sm:w-10"><Check size={16} strokeWidth={3} /></button></div></div></div>
       </section>
       <section className={`relative z-10 mx-auto ${contentWidth}`}>
         <div data-aos="fade-up" className="px-1 pb-5 pt-6 text-center sm:px-3">
@@ -186,7 +188,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
           </a>
           <p className="mx-auto mt-3 max-w-xl whitespace-pre-line leading-6 text-[length:var(--intro-size)] font-[var(--intro-weight)] text-[var(--intro-color)] [font-family:var(--intro-font)]" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden" }}>{microsite.description}</p>
         </div>
-        <div data-aos="fade-up" className="mb-8 flex justify-center"><time dateTime={now.toISOString()} className={`rounded-full px-4 py-2 text-xs font-semibold ${card}`} style={{ color: "var(--realtime-color)" }} aria-label="Waktu sekarang">{formatJakartaTime(now)}</time></div>
+        <div data-aos="fade-up" className={`mb-8 flex ${settings.time_position === "left" ? "justify-start" : settings.time_position === "right" ? "justify-end" : "justify-center"}`}><time dateTime={now.toISOString()} className={`px-4 py-2 text-xs font-semibold ${timeFrameClass(settings, radius, card)}`} style={timeFrameStyle(settings)} aria-label="Waktu sekarang">{settings.time_layout === "split" ? <SplitTime value={now} settings={settings} /> : formatJakartaTime(now, settings)}</time></div>
         <div className={spacingClass}>{orderedComponents.map((component, index) => <div key={component.id} data-aos="fade-up" style={{ "--aos-delay": `${Math.min(index * 70, 280)}ms` } as React.CSSProperties}><PublicComponent component={component} config={config} services={services} contacts={contacts} radius={radius} card={card} titleText={titleText} bodyText={bodyText} linkSpacingClass={linkSpacingClass} /></div>)}</div>
         <footer data-aos="fade-up" className="flex items-center justify-between pb-7 pt-14 text-xs text-[var(--footer-text)]"><span>{String.fromCharCode(169)} {new Date().getFullYear()} {microsite.title}</span><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Microsite resmi</span></footer>
       </section>
@@ -343,7 +345,39 @@ function PublicComponent({ component, config, services, contacts, radius, card, 
   return null;
 }
 
-function formatJakartaTime(value: Date) { const date = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(value); const parts = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(value); const hour = parts.find((part) => part.type === "hour")?.value ?? "00"; const minute = parts.find((part) => part.type === "minute")?.value ?? "00"; return `${date} ${String.fromCharCode(183)} ${hour}:${minute}`; }
+function timeParts(value: Date) {
+  const weekday = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", weekday: "long" }).format(value);
+  const date = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "2-digit", month: "long", year: "numeric" }).format(value);
+  const parts = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(value);
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return { weekday, date, time: `${hour}:${minute}` };
+}
+function timeSeparatorValue(separator: MicrositeConfig["settings"]["time_separator"]) { return separator === "dot" ? "·" : separator === "dash" ? "—" : separator === "slash" ? "/" : separator === "line" ? "│" : ""; }
+function formatJakartaTime(value: Date, settings: MicrositeConfig["settings"]) {
+  const { weekday, date, time } = timeParts(value);
+  const suffix = settings.time_show_timezone ? " WIB" : "";
+  const separator = timeSeparatorValue(settings.time_separator);
+  const join = (left: string, right: string) => separator ? `${left} ${separator} ${right}` : `${left} ${right}`;
+  if (settings.time_format === "time-only") return `${time}${suffix}`;
+  if (settings.time_format === "weekday-time") return `${join(weekday, time)}${suffix}`;
+  if (settings.time_format === "date-time") return `${join(date, time)}${suffix}`;
+  return `${join(`${weekday}, ${date}`, time)}${suffix}`;
+}
+function timeFrameClass(settings: MicrositeConfig["settings"], radius: string, card: string) {
+  if (settings.time_style === "pill") return `${card} rounded-full`;
+  if (settings.time_style === "outline") return `${card} rounded-xl bg-transparent shadow-none`;
+  if (settings.time_style === "minimal") return `${card} rounded-none border-x-0 border-t-0 bg-transparent shadow-none`;
+  return `${card} ${radius}`;
+}
+function timeFrameStyle(settings: MicrositeConfig["settings"]): React.CSSProperties { return settings.time_style === "minimal" || settings.time_style === "outline" ? { color: "var(--realtime-color)", backgroundColor: "transparent" } : { color: "var(--realtime-color)" }; }
+function SplitTime({ value, settings }: { value: Date; settings: MicrositeConfig["settings"] }) {
+  const { weekday, date, time } = timeParts(value);
+  const left = settings.time_format === "time-only" ? "Waktu sekarang" : settings.time_format === "weekday-time" ? weekday : settings.time_format === "date-time" ? date : `${weekday}, ${date}`;
+  const right = `${time}${settings.time_show_timezone ? " WIB" : ""}`;
+  const separator = settings.time_separator;
+  return <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-1"><span>{left}</span>{separator !== "none" && <span aria-hidden="true" className={separator === "line" ? "h-5 w-px bg-current/30" : "text-current/55"}>{separator === "dot" ? "·" : separator === "dash" ? "—" : "/"}</span>}<span>{right}</span></span>;
+}
 function formatVerifiedDate(value?: string | null) { if (!value) return "Not published yet"; return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)); }
 function isHexColor(value: string) { return /^#[0-9A-Fa-f]{6}$/.test(value); }
 function readableTextColor(value: string, background: string, fallback: string) {

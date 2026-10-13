@@ -65,6 +65,12 @@ export const defaultConfig: MicrositeConfig = {
     intro_text_weight: "normal",
     intro_text_color: "#4C6258",
     hero_profile_position: "bottom",
+    time_format: "weekday-date-time",
+    time_layout: "single",
+    time_separator: "dot",
+    time_show_timezone: false,
+    time_style: "card",
+    time_position: "center",
   },
   services: [
     { id: "tkad", title: "Informasi TKAD", description: "Akses informasi dan jadwal layanan TKAD.", href: "https://sdndukuhwaru01-tka.vercel.app/login", icon: "book-open", is_enabled: true, sort_order: 1 },

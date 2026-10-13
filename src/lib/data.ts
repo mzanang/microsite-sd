@@ -6,7 +6,25 @@ function normalizeSettings(value: Partial<MicrositeConfig["settings"]>) {
   const merged = { ...defaultConfig.settings, ...value };
   const linkLayouts = ["stacked", "horizontal", "compact", "cards", "spotlight"] as const;
   const linkLayout = linkLayouts.includes(merged.link_layout as typeof linkLayouts[number]) ? merged.link_layout : "stacked";
-  return { ...merged, background_url: merged.background_url || "/bg_hero.webp", logo_url: merged.logo_url || "/logo.png", link_layout: linkLayout, site_title_font_family: merged.site_title_font_family ?? defaultConfig.settings.site_title_font_family, site_title_text_weight: merged.site_title_text_weight ?? defaultConfig.settings.site_title_text_weight };
+  const timeFormats = ["weekday-date-time", "date-time", "weekday-time", "time-only"] as const;
+  const timeLayouts = ["single", "split"] as const;
+  const timeSeparators = ["dot", "dash", "slash", "line", "none"] as const;
+  const timeStyles = ["card", "pill", "outline", "minimal"] as const;
+  const timePositions = ["left", "center", "right"] as const;
+  return {
+    ...merged,
+    background_url: merged.background_url || "/bg_hero.webp",
+    logo_url: merged.logo_url || "/logo.png",
+    link_layout: linkLayout,
+    site_title_font_family: merged.site_title_font_family ?? defaultConfig.settings.site_title_font_family,
+    site_title_text_weight: merged.site_title_text_weight ?? defaultConfig.settings.site_title_text_weight,
+    time_format: timeFormats.includes(merged.time_format as typeof timeFormats[number]) ? merged.time_format : defaultConfig.settings.time_format,
+    time_layout: timeLayouts.includes(merged.time_layout as typeof timeLayouts[number]) ? merged.time_layout : defaultConfig.settings.time_layout,
+    time_separator: timeSeparators.includes(merged.time_separator as typeof timeSeparators[number]) ? merged.time_separator : defaultConfig.settings.time_separator,
+    time_show_timezone: typeof merged.time_show_timezone === "boolean" ? merged.time_show_timezone : defaultConfig.settings.time_show_timezone,
+    time_style: timeStyles.includes(merged.time_style as typeof timeStyles[number]) ? merged.time_style : defaultConfig.settings.time_style,
+    time_position: timePositions.includes(merged.time_position as typeof timePositions[number]) ? merged.time_position : defaultConfig.settings.time_position,
+  };
 }
 
 export async function getPublishedConfig(): Promise<MicrositeConfig> {
