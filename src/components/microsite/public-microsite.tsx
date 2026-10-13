@@ -55,18 +55,20 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
   const backgroundAnimationColor = settings.background_animation_color_mode === "accent" ? "var(--accent)" : settings.background_animation_color_mode === "custom" ? settings.background_animation_color : "var(--primary)";
   const darkMode = themeMode === "dark";
   const cardVars = {
-    "--primary": darkMode ? "#8bd8b1" : settings.primary_color,
-    "--accent": darkMode ? "#ffd18a" : settings.accent_color,
-    "--page-bg": darkMode ? "#101b18" : settings.page_background,
-    "--text-color": darkMode ? "#e7f1ec" : settings.text_color,
+    "--primary": darkMode ? "#76a9ef" : settings.primary_color,
+    "--accent": darkMode ? "#4b8fe8" : settings.accent_color,
+    "--page-bg": darkMode ? "#082b62" : settings.page_background,
+    "--text-color": darkMode ? "#edf4ff" : settings.text_color,
     "--page-font": fontFamilyMap[settings.font_family],
     "--site-title-font": fontFamilyMap[settings.site_title_font_family],
     "--site-title-weight": weightMap[settings.site_title_text_weight],
     "--card-tint": "color-mix(in srgb, var(--primary) 8%, var(--page-bg))",
-    "--card-bg": darkMode ? "#1a2a24" : settings.card_background,
-    "--card-text": darkMode ? "#edf7f1" : settings.card_text_color,
-    "--card-muted": darkMode ? "#b4c8bd" : settings.card_muted_color,
-    "--card-border": darkMode ? "#365246" : settings.card_border_color,
+    "--card-bg": darkMode ? "#0d3470" : settings.card_background,
+    "--card-text": darkMode ? "#f3f7ff" : settings.card_text_color,
+    "--card-muted": darkMode ? "#bfd0e8" : settings.card_muted_color,
+    "--card-border": darkMode ? "#2d5b99" : settings.card_border_color,
+    "--realtime-color": darkMode ? "#c8ded3" : `color-mix(in srgb, ${settings.primary_color} 72%, #19342b)`,
+    "--button-text-color": darkMode && settings.button_color_mode !== "custom" ? "#ffffff" : settings.button_text_color,
     "--card-font": fontFamilyMap[settings.card_font_family],
     "--card-title-size": sizeMap.title[settings.card_title_size],
     "--card-body-size": sizeMap.body[settings.card_body_size],
@@ -75,7 +77,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
     "--intro-font": fontFamilyMap[settings.intro_font_family],
     "--intro-size": introSizeMap[settings.intro_text_size],
     "--intro-weight": weightMap[settings.intro_text_weight],
-    "--intro-color": darkMode ? "#b8cec2" : settings.intro_text_color,
+    "--intro-color": darkMode ? "#c5d5ec" : settings.intro_text_color,
   } as React.CSSProperties;
 
   useEffect(() => {
@@ -164,7 +166,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
     window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
   }
 
-  return <main ref={rootRef} className="relative min-h-screen overflow-x-hidden text-[var(--text-color)] [font-family:var(--page-font)]" style={{ ...cardVars, backgroundColor: darkMode ? "#0b1411" : "#edf3f5" }}>
+  return <main ref={rootRef} className="relative min-h-screen overflow-x-hidden text-[var(--text-color)] [font-family:var(--page-font)]" style={{ ...cardVars, backgroundColor: "var(--page-bg)" }}>
     {showSplash && <PublicSplash />}
     <div className="relative z-10 mx-auto min-h-screen max-w-[1440px] px-4 py-4 sm:px-8 sm:py-8 lg:px-12" style={{ backgroundColor: "color-mix(in srgb, var(--page-bg) 94%, transparent)" }}>
       {settings.background_animation !== "none" && <BackgroundAnimation settings={settings} color={backgroundAnimationColor} />}
@@ -179,7 +181,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
           </a>
           <p className="mx-auto mt-3 max-w-xl whitespace-pre-line leading-6 text-[length:var(--intro-size)] font-[var(--intro-weight)] text-[var(--intro-color)] [font-family:var(--intro-font)]" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden" }}>{microsite.description}</p>
         </div>
-        <div data-aos="fade-up" className="mb-8 flex justify-center"><time dateTime={now.toISOString()} className="rounded-full border px-4 py-2 text-xs font-semibold text-[var(--card-muted)] [border-color:var(--card-border)] [box-shadow:var(--card-shadow)]" aria-label="Waktu sekarang">{formatJakartaTime(now)}</time></div>
+        <div data-aos="fade-up" className="mb-8 flex justify-center"><time dateTime={now.toISOString()} className="rounded-full border px-4 py-2 text-xs font-semibold [box-shadow:var(--card-shadow)]" style={{ color: "var(--realtime-color)", borderColor: "color-mix(in srgb, var(--realtime-color) 42%, transparent)" }} aria-label="Waktu sekarang">{formatJakartaTime(now)}</time></div>
         <div className={spacingClass}>{orderedComponents.map((component, index) => <div key={component.id} data-aos="fade-up" style={{ "--aos-delay": `${Math.min(index * 70, 280)}ms` } as React.CSSProperties}><PublicComponent component={component} config={config} services={services} contacts={contacts} radius={radius} card={card} titleText={titleText} bodyText={bodyText} linkSpacingClass={linkSpacingClass} /></div>)}</div>
         <footer data-aos="fade-up" className="flex items-center justify-between pb-7 pt-14 text-xs text-[var(--card-muted)]"><span>{String.fromCharCode(169)} {new Date().getFullYear()} {microsite.title}</span><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Microsite resmi</span></footer>
       </section>
@@ -200,7 +202,7 @@ function BackgroundAnimation({ settings, color }: { settings: MicrositeConfig["s
   if (settings.background_animation === "waves") return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden"><svg className="microsite-bg-waves" viewBox="0 0 1200 360" preserveAspectRatio="none" style={style}><path className="microsite-bg-wave-path microsite-bg-wave-back" d="M0 210 C 150 148 280 252 430 205 S 720 150 870 208 S 1080 255 1200 190 V360 H0 Z" /><path className="microsite-bg-wave-path microsite-bg-wave-middle" d="M0 252 C 170 196 300 292 480 238 S 760 188 930 248 S 1080 284 1200 225 V360 H0 Z" /><path className="microsite-bg-wave-path microsite-bg-wave-front" d="M0 292 C 170 246 300 320 470 278 S 750 230 910 286 S 1080 330 1200 275 V360 H0 Z" /><path className="microsite-bg-foam-line" d="M0 210 C 150 148 280 252 430 205 S 720 150 870 208 S 1080 255 1200 190" /><path className="microsite-bg-foam-line microsite-bg-foam-line-soft" d="M0 252 C 170 196 300 292 480 238 S 760 188 930 248 S 1080 284 1200 225" /></svg>{Array.from({ length: Math.min(count, 24) }, (_, index) => <span key={index} className="microsite-bg-foam" style={{ ...style, left: `${(index * 29) % 100}%`, bottom: `${18 + (index % 5) * 6}%`, width: `${18 + (index % 4) * 9}px`, animationDelay: `${index * -0.7}s` }} />)}</div>;
   if (settings.background_animation === "clouds") return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">{Array.from({ length: count }, (_, index) => <span key={index} className="microsite-bg-cloud" style={{ ...style, "--microsite-cloud-scale": 0.8 + (index % 4) * 0.12, left: `${(index * 37) % 100}%`, top: `${(index * 61) % 82}%`, animationDelay: `${(index % 7) * -1.7}s` } as React.CSSProperties} />)}</div>;
   const itemClass = settings.background_animation === "particles" ? "microsite-bg-particle" : settings.background_animation === "rain" ? "microsite-bg-rain" : settings.background_animation === "snow" ? "microsite-bg-snow" : "microsite-bg-orb";
-  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">{Array.from({ length: count }, (_, index) => <span key={index} className={itemClass} style={{ ...style, left: `${(index * 37) % 100}%`, top: `${(index * 61) % 100}%`, width: itemClass === "microsite-bg-particle" || itemClass === "microsite-bg-rain" || itemClass === "microsite-bg-snow" ? undefined : `${28 + (index % 4) * 16}px`, height: itemClass === "microsite-bg-particle" || itemClass === "microsite-bg-rain" || itemClass === "microsite-bg-snow" ? undefined : `${28 + (index % 4) * 16}px`, animationDelay: `${(index % 7) * -1.7}s` }} />)}</div>;
+  return <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">{Array.from({ length: count }, (_, index) => <span key={index} className={itemClass} style={{ ...style, left: `${(index * 37) % 100}%`, top: `${(index * 61) % 100}%`, width: itemClass === "microsite-bg-particle" || itemClass === "microsite-bg-rain" || itemClass === "microsite-bg-snow" ? undefined : `${28 + (index % 4) * 16}px`, height: itemClass === "microsite-bg-particle" || itemClass === "microsite-bg-rain" || itemClass === "microsite-bg-snow" ? undefined : `${28 + (index % 4) * 16}px`, "--microsite-rain-length": `${18 + (index % 5) * 7}px`, "--microsite-rain-opacity": 0.34 + (index % 4) * 0.06, "--microsite-rain-drift": `${-18 + (index % 6) * 7}px`, animationDelay: `${(index % 11) * -0.38}s` } as React.CSSProperties} />)}</div>;
 }
 
 function SectionHeading({ component, defaultShowTitle = false }: { component: MicrositeConfig["components"][number]; defaultShowTitle?: boolean }) {
@@ -236,7 +238,7 @@ function ServiceLinkCard({ service, settings, layout, featured, radius, card, ti
   const iconSize = iconSizeValue(settings.icon_size);
   const icon = <span className={`flex shrink-0 items-center justify-center ${useSeparateIcon ? `${iconPanelClass(settings.icon_panel_size, compact)} self-stretch` : compact ? "h-9 w-9" : "h-11 w-11"} ${iconFrameClass}`} style={iconFrameStyle}>{service.icon_type === "image" ? <ServiceIcon name={service.icon} imageUrl={service.icon_url} size={iconSize} /> : <AppIcon name={service.icon} size={iconSize} />}</span>;
   const linkClass = compact ? "min-h-14 gap-3 px-3 py-2.5" : cardLayout ? "min-h-[150px] flex-col justify-center gap-3 p-5 text-center" : spotlight && featured ? "min-h-[150px] gap-5 p-6 sm:col-span-2" : spotlight ? "min-h-[96px] gap-3 p-4" : "min-h-[72px] gap-4 p-4";
-  const content = <span className={`min-w-0 flex-1 ${cardLayout ? "text-center" : "text-left"}`}><span className={`block ${titleText}`}>{service.title}</span>{service.description && <span className={`mt-1 block leading-5 ${bodyText}`}>{service.description}</span>}</span>;
+  const content = <span className={`min-w-0 flex-1 ${cardLayout ? "text-center" : "text-left"}`}><span className={`block ${titleText}`} style={buttonTitleStyle(settings)}>{service.title}</span>{service.description && <span className={`mt-1 block leading-5 ${bodyText}`} style={buttonDescriptionStyle(settings)}>{service.description}</span>}</span>;
   const effectClass = buttonEffectClass(settings, service.button_effect, service.button_effect_trigger);
   const link = <a href={isSafeUrl(service.href) ? service.href : "#"} target="_blank" rel="noreferrer" style={{ ...buttonStyle(settings), ...buttonSizeStyle(settings), ...buttonEffectStyle(service.button_effect_speed) }} className={`group flex min-w-0 flex-1 items-center border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${effectClass} ${buttonStyleClass(settings)} ${linkClass} ${spotlight && featured ? "bg-[var(--card-tint)]" : ""} ${radius} ${card}`} data-button-effect={service.button_effect ?? settings.button_effect} data-button-trigger={service.button_effect_trigger ?? settings.button_effect_trigger}>{!useSeparateIcon && icon}{content}<ArrowUpRight size={19} className={`shrink-0 text-[var(--card-muted)] ${cardLayout ? "self-end" : ""}`} /></a>;
   return useSeparateIcon ? <div className="flex w-full min-w-0 items-stretch gap-3">{icon}{link}</div> : link;
@@ -245,13 +247,22 @@ function ServiceLinkCard({ service, settings, layout, featured, radius, card, ti
 function buttonStyle(settings: MicrositeConfig["settings"]): React.CSSProperties {
   if (settings.button_style === "card") return {};
   const color = settings.button_color_mode === "accent" ? "var(--accent)" : settings.button_color_mode === "custom" ? settings.button_color : "var(--primary)";
-  if (settings.button_style === "solid") return { backgroundColor: color, borderColor: color, color: settings.button_text_color };
-  if (settings.button_style === "pill") return { backgroundColor: color, borderColor: color, color: settings.button_text_color, borderRadius: "9999px" };
+  if (settings.button_style === "solid") return { backgroundColor: color, borderColor: color, color: "var(--button-text-color)" };
+  if (settings.button_style === "pill") return { backgroundColor: color, borderColor: color, color: "var(--button-text-color)", borderRadius: "9999px" };
   if (settings.button_style === "outline") return { backgroundColor: "transparent", borderColor: color, color };
   if (settings.button_style === "soft") return { backgroundColor: `color-mix(in srgb, ${color} 16%, var(--card-bg))`, borderColor: "transparent", color };
   if (settings.button_style === "glass") return { backgroundColor: "color-mix(in srgb, var(--card-bg) 76%, transparent)", borderColor: `color-mix(in srgb, ${color} 35%, var(--card-border))`, color, backdropFilter: "blur(12px)" };
   if (settings.button_style === "underline") return { backgroundColor: "transparent", borderColor: "transparent", borderBottom: `2px solid ${color}`, color };
   return { backgroundColor: "transparent", borderColor: "transparent", color };
+}
+
+function buttonDescriptionStyle(settings: MicrositeConfig["settings"]): React.CSSProperties {
+  const usesButtonSurface = settings.button_style === "solid" || settings.button_style === "pill";
+  return { color: usesButtonSurface ? "color-mix(in srgb, var(--button-text-color) 76%, transparent)" : "var(--card-muted)" };
+}
+
+function buttonTitleStyle(settings: MicrositeConfig["settings"]): React.CSSProperties {
+  return settings.button_style === "solid" || settings.button_style === "pill" ? { color: "var(--button-text-color)" } : {};
 }
 
 function buttonSizeStyle(settings: MicrositeConfig["settings"]): React.CSSProperties {
@@ -323,7 +334,7 @@ function PublicComponent({ component, config, services, contacts, radius, card, 
   if (component.type === "text") { const withCard = values.with_card !== false; const textContent = <><h2 className={titleText}>{component.title}</h2><p className={`mt-3 whitespace-pre-line leading-7 ${bodyText}`}>{body}</p></>; return withCard ? <section className={`border p-5 ${radius} ${card}`}>{textContent}</section> : <section className="px-1 py-2">{textContent}</section>; }
   if (component.type === "image" && isSafeUrl(String(values.image_url ?? ""))) return <section><figure className={`overflow-hidden border ${radius} ${card}`}><Image src={String(values.image_url)} alt={String(values.alt ?? component.title)} width={1200} height={700} className="h-auto w-full object-cover" unoptimized /><figcaption className={`p-4 ${titleText}`}>{component.title}</figcaption></figure></section>;
   if (component.type === "embed" && isSafeUrl(String(values.embed_url ?? ""))) return <section><h2 className={`mb-4 text-center font-display text-3xl text-[var(--primary)] ${titleText}`}>{component.title}</h2><div className={`aspect-video overflow-hidden border ${radius} ${card}`}><iframe title={component.title} src={String(values.embed_url)} className="h-full w-full border-0" loading="lazy" /></div></section>;
-  if (["link", "whatsapp", "email", "instagram", "phone"].includes(component.type)) { const icon = <span className={`flex shrink-0 items-center justify-center ${separateIcon ? "min-h-[72px] min-w-16 self-stretch" : "h-11 w-11"} ${iconFrameClass}`} style={iconFrameStyle}><AppIcon name={component.type === "email" ? "mail" : component.type} size={iconSizeValue(settings.icon_size)} /></span>; const linkStyle = { ...buttonStyle(settings), ...buttonSizeStyle(settings), ...buttonEffectStyle(String(values.button_effect_speed ?? "inherit")) }; const effectClass = buttonEffectClass(settings, String(values.button_effect ?? "inherit"), String(values.button_effect_trigger ?? "inherit")); const link = <a href={isSafeUrl(href) ? href : "#"} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={linkStyle} className={`group flex min-h-[72px] min-w-0 flex-1 items-center gap-4 border p-4 transition ${effectClass} ${buttonStyleClass(settings)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${radius} ${card}`} data-button-effect={String(values.button_effect ?? settings.button_effect)} data-button-trigger={String(values.button_effect_trigger ?? settings.button_effect_trigger)}><span className="min-w-0 flex-1"><span className={`block ${titleText}`}>{component.title}</span>{body && <span className={`mt-1 block leading-5 ${bodyText}`}>{body}</span>}</span><ExternalLink size={18} className="shrink-0 text-[var(--card-muted)]" /></a>; return separateIcon ? <div className="flex w-full min-w-0 items-stretch gap-3">{icon}{link}</div> : <a href={isSafeUrl(href) ? href : "#"} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={linkStyle} className={`group flex min-h-[72px] items-center gap-4 border p-4 transition ${effectClass} ${buttonStyleClass(settings)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${radius} ${card}`} data-button-effect={String(values.button_effect ?? settings.button_effect)} data-button-trigger={String(values.button_effect_trigger ?? settings.button_effect_trigger)}>{icon}<span className="min-w-0 flex-1"><span className={`block ${titleText}`}>{component.title}</span>{body && <span className={`mt-1 block leading-5 ${bodyText}`}>{body}</span>}</span><ExternalLink size={18} className="shrink-0 text-[var(--card-muted)]" /></a>; }
+  if (["link", "whatsapp", "email", "instagram", "phone"].includes(component.type)) { const icon = <span className={`flex shrink-0 items-center justify-center ${separateIcon ? "min-h-[72px] min-w-16 self-stretch" : "h-11 w-11"} ${iconFrameClass}`} style={iconFrameStyle}><AppIcon name={component.type === "email" ? "mail" : component.type} size={iconSizeValue(settings.icon_size)} /></span>; const linkStyle = { ...buttonStyle(settings), ...buttonSizeStyle(settings), ...buttonEffectStyle(String(values.button_effect_speed ?? "inherit")) }; const effectClass = buttonEffectClass(settings, String(values.button_effect ?? "inherit"), String(values.button_effect_trigger ?? "inherit")); const link = <a href={isSafeUrl(href) ? href : "#"} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={linkStyle} className={`group flex min-h-[72px] min-w-0 flex-1 items-center gap-4 border p-4 transition ${effectClass} ${buttonStyleClass(settings)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${radius} ${card}`} data-button-effect={String(values.button_effect ?? settings.button_effect)} data-button-trigger={String(values.button_effect_trigger ?? settings.button_effect_trigger)}><span className="min-w-0 flex-1"><span className={`block ${titleText}`} style={buttonTitleStyle(settings)}>{component.title}</span>{body && <span className={`mt-1 block leading-5 ${bodyText}`} style={buttonDescriptionStyle(settings)}>{body}</span>}</span><ExternalLink size={18} className="shrink-0 text-[var(--card-muted)]" /></a>; return separateIcon ? <div className="flex w-full min-w-0 items-stretch gap-3">{icon}{link}</div> : <a href={isSafeUrl(href) ? href : "#"} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={linkStyle} className={`group flex min-h-[72px] items-center gap-4 border p-4 transition ${effectClass} ${buttonStyleClass(settings)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${radius} ${card}`} data-button-effect={String(values.button_effect ?? settings.button_effect)} data-button-trigger={String(values.button_effect_trigger ?? settings.button_effect_trigger)}>{icon}<span className="min-w-0 flex-1"><span className={`block ${titleText}`} style={buttonTitleStyle(settings)}>{component.title}</span>{body && <span className={`mt-1 block leading-5 ${bodyText}`} style={buttonDescriptionStyle(settings)}>{body}</span>}</span><ExternalLink size={18} className="shrink-0 text-[var(--card-muted)]" /></a>; }
   return null;
 }
 
