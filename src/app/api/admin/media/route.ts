@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 
-const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]);
+const allowedImages = new Set(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]);
+const allowedVideos = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
 export async function GET() {
   if (!supabaseConfigured()) return NextResponse.json({ error: "Supabase belum dikonfigurasi di environment." }, { status: 503 });
@@ -18,13 +21,26 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await postMedia(request);
+  } catch (error) {
+    console.error("Admin media upload failed", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Upload media gagal diproses." }, { status: 500 });
+  }
+}
+
+async function postMedia(request: Request) {
   if (!supabaseConfigured()) return NextResponse.json({ error: "Supabase belum dikonfigurasi di environment." }, { status: 503 });
   const supabase = await createClient(); const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return NextResponse.json({ error: "Sesi admin tidak ditemukan." }, { status: 401 });
   const { data: profile } = await supabase.from("admin_profiles").select("id").eq("user_id", userData.user.id).eq("is_active", true).maybeSingle();
   if (!profile) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
   const form = await request.formData(); const file = form.get("file");
-  if (!(file instanceof File) || !allowed.has(file.type) || file.size > 5 * 1024 * 1024) return NextResponse.json({ error: "File harus JPG, PNG, WebP, atau SVG dan berukuran maksimal 5 MB." }, { status: 400 });
+  if (!(file instanceof File)) return NextResponse.json({ error: "File tidak ditemukan." }, { status: 400 });
+  const isImage = allowedImages.has(file.type);
+  const isVideo = allowedVideos.has(file.type);
+  const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+  if ((!isImage && !isVideo) || file.size > maxSize) return NextResponse.json({ error: "File harus JPG, PNG, WebP, atau SVG maksimal 5 MB; atau video MP4, WebM, OGG, atau MOV maksimal 100 MB." }, { status: 400 });
   const { data: site } = await supabase.from("microsites").select("id").eq("slug", "sd-negeri-dukuhwaru-01").single();
   if (!site) return NextResponse.json({ error: "Microsite tidak ditemukan." }, { status: 404 });
   const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, "-"); const path = `${site.id}/${crypto.randomUUID()}-${safeName}`;
@@ -32,7 +48,10 @@ export async function POST(request: Request) {
   if (uploadError) return NextResponse.json({ error: "Upload Storage gagal." }, { status: 500 });
   const { data: publicUrl } = supabase.storage.from("microsite-media").getPublicUrl(path);
   const { error: metadataError } = await supabase.from("media_assets").insert({ microsite_id: site.id, storage_path: path, original_name: file.name, mime_type: file.type, file_size: file.size, alt_text: file.name.replace(/\.[^.]+$/, ""), uploaded_by: userData.user.id });
-  if (metadataError) return NextResponse.json({ error: "Metadata aset gagal disimpan." }, { status: 500 });
+  if (metadataError) {
+    await supabase.storage.from("microsite-media").remove([path]);
+    return NextResponse.json({ error: "Metadata aset gagal disimpan." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, url: publicUrl.publicUrl, path });
 }
 

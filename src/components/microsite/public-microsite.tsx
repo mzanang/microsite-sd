@@ -52,7 +52,10 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
   const contacts = config.contacts.filter((contact) => contact.is_enabled && contact.href);
   const logoUrl = settings.logo_url || "/logo.png";
   const backgroundUrl = settings.background_url || "/bg_hero.webp";
-  const orderedComponents = useMemo(() => [...config.components].filter((component) => component.is_enabled).sort((a, b) => a.sort_order - b.sort_order), [config.components]);
+  const orderedComponents = useMemo(
+    () => [...config.components].filter((component) => component.is_enabled).sort((a, b) => a.sort_order - b.sort_order),
+    [config.components],
+  );
   const overlay = Math.max(0, Math.min(Number(settings.overlay_opacity ?? 0.12), 0.8));
   const profilePosition = settings.hero_profile_position ?? "bottom";
   const backgroundAnimationColor = settings.background_animation_color_mode === "accent" ? "var(--accent)" : settings.background_animation_color_mode === "custom" ? settings.background_animation_color : "var(--primary)";
@@ -297,6 +300,47 @@ function buttonStyleClass(settings: MicrositeConfig["settings"]) { return settin
 
 function iconSizeValue(size: MicrositeConfig["settings"]["icon_size"]) { return size === "small" ? 18 : size === "large" ? 30 : 23; }
 function iconPanelClass(size: MicrositeConfig["settings"]["icon_panel_size"], compact: boolean) { if (compact) return size === "wide" ? "min-h-14 min-w-16" : size === "compact" ? "min-h-14 min-w-12" : "min-h-14 min-w-14"; return size === "wide" ? "min-h-[72px] min-w-20" : size === "compact" ? "min-h-[72px] min-w-14" : "min-h-[72px] min-w-16"; }
+function normaliseEmbedUrl(value: string) {
+  if (value.startsWith("blob:")) return value;
+  if (!isSafeUrl(value)) return "";
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (["youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"].includes(host)) {
+      const videoId = host === "youtu.be" ? url.pathname.split("/").filter(Boolean)[0] : url.searchParams.get("v") || url.pathname.match(/\/(?:embed|shorts|live)\/([^/?]+)/)?.[1];
+      if (videoId) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
+    }
+    if (host === "vimeo.com") {
+      const videoId = url.pathname.match(/\/(\d+)/)?.[1];
+      if (videoId) return `https://player.vimeo.com/video/${videoId}`;
+    }
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+function isVideoFileUrl(value: string, mimeType = "") {
+  if (mimeType.startsWith("video/")) return true;
+  try { return /\.(mp4|webm|ogg|mov)$/i.test(new URL(value).pathname); } catch { return false; }
+}
+function autoplayEmbedUrl(value: string, autoplay: boolean, audio: boolean) {
+  try {
+    const url = new URL(value);
+    if (url.hostname === "www.youtube-nocookie.com" || url.hostname === "player.vimeo.com") {
+      if (autoplay) {
+        url.searchParams.set("autoplay", "1");
+        if (audio) url.searchParams.delete("mute");
+        else url.searchParams.set("mute", "1");
+      } else {
+        url.searchParams.delete("autoplay");
+        url.searchParams.delete("mute");
+      }
+    }
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
 
 function PublicComponent({ component, config, services, contacts, radius, card, titleText, bodyText, linkSpacingClass }: { component: MicrositeConfig["components"][number]; config: MicrositeConfig; services: MicrositeConfig["services"]; contacts: MicrositeConfig["contacts"]; radius: string; card: string; titleText: string; bodyText: string; linkSpacingClass: string }) {
   const { microsite, settings } = config;
@@ -341,7 +385,13 @@ function PublicComponent({ component, config, services, contacts, radius, card, 
   if (component.type === "divider") { const style = ["solid", "dashed", "dotted", "double"].includes(String(values.style)) ? String(values.style) : "solid"; const height = Math.max(1, Math.min(8, Number(values.height ?? 1))); const color = isHexColor(String(values.color ?? "")) ? String(values.color) : "var(--card-border)"; const spacing = values.spacing === "compact" ? "my-3" : values.spacing === "airy" ? "my-10" : "my-6"; return <div role="separator" aria-label="Pemisah komponen" className={spacing} style={{ borderTop: `${height}px ${style} ${color}` }} />; }
   if (component.type === "text") { const withCard = values.with_card !== false; const textContent = <><h2 className={titleText}>{component.title}</h2><p className={`mt-3 whitespace-pre-line leading-7 ${bodyText}`}>{body}</p></>; return withCard ? <section className={`border p-5 ${radius} ${card}`}>{textContent}</section> : <section className="px-1 py-2">{textContent}</section>; }
   if (component.type === "image" && isSafeUrl(String(values.image_url ?? ""))) return <section><figure className={`overflow-hidden border ${radius} ${card}`}><Image src={String(values.image_url)} alt={String(values.alt ?? component.title)} width={1200} height={700} className="h-auto w-full object-cover" unoptimized /><figcaption className={`p-4 ${titleText}`}>{component.title}</figcaption></figure></section>;
-  if (component.type === "embed" && isSafeUrl(String(values.embed_url ?? ""))) return <section><h2 className={`mb-4 text-center font-display text-3xl text-[var(--primary)] ${titleText}`}>{component.title}</h2><div className={`aspect-video overflow-hidden border ${radius} ${card}`}><iframe title={component.title} src={String(values.embed_url)} className="h-full w-full border-0" loading="lazy" /></div></section>;
+  if (component.type === "embed") {
+    const embedUrl = normaliseEmbedUrl(String(values.embed_url ?? ""));
+    if (!embedUrl) return null;
+    const autoplay = values.autoplay !== false;
+    const autoplayAudio = autoplay && values.autoplay_audio === true;
+    return <section aria-labelledby={`${component.id}-title`}><h2 id={`${component.id}-title`} className={`mb-4 text-center font-display text-3xl text-[var(--primary)] ${titleText}`}>{component.title}</h2><div className={`aspect-video overflow-hidden border ${radius} ${card}`}>{isVideoFileUrl(embedUrl, String(values.embed_mime_type ?? "")) ? <video src={embedUrl} className="h-full w-full object-cover" controls autoPlay={autoplay} muted={!autoplayAudio} playsInline preload="metadata" /> : <iframe title={component.title} src={autoplayEmbedUrl(embedUrl, autoplay, autoplayAudio)} className="h-full w-full border-0" loading="lazy" allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />}</div></section>;
+  }
   if (["link", "whatsapp", "email", "instagram", "phone"].includes(component.type)) { const icon = <span className={`flex shrink-0 items-center justify-center ${separateIcon ? "min-h-[72px] min-w-16 self-stretch" : "h-11 w-11"} ${iconFrameClass}`} style={iconFrameStyle}><AppIcon name={component.type === "email" ? "mail" : component.type} size={iconSizeValue(settings.icon_size)} /></span>; const linkStyle = { ...buttonStyle(settings), ...buttonSizeStyle(settings), ...buttonEffectStyle(String(values.button_effect_speed ?? "inherit")) }; const effectClass = buttonEffectClass(settings, String(values.button_effect ?? "inherit"), String(values.button_effect_trigger ?? "inherit")); const link = <a href={isSafeUrl(href) ? href : "#"} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={linkStyle} className={`group flex min-h-[72px] min-w-0 flex-1 items-center gap-4 border p-4 transition ${effectClass} ${buttonStyleClass(settings)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${radius} ${card}`} data-button-effect={String(values.button_effect ?? settings.button_effect)} data-button-trigger={String(values.button_effect_trigger ?? settings.button_effect_trigger)}><span className="min-w-0 flex-1"><span className={`block ${titleText}`} style={buttonTitleStyle(settings)}>{component.title}</span>{body && <span className={`mt-1 block leading-5 ${bodyText}`} style={buttonDescriptionStyle(settings)}>{body}</span>}</span><ExternalLink size={18} className="shrink-0 text-[var(--card-muted)]" /></a>; return separateIcon ? <div className="flex w-full min-w-0 items-stretch gap-3">{icon}{link}</div> : <a href={isSafeUrl(href) ? href : "#"} target={href.startsWith("http") ? "_blank" : undefined} rel="noreferrer" style={linkStyle} className={`group flex min-h-[72px] items-center gap-4 border p-4 transition ${effectClass} ${buttonStyleClass(settings)} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${radius} ${card}`} data-button-effect={String(values.button_effect ?? settings.button_effect)} data-button-trigger={String(values.button_effect_trigger ?? settings.button_effect_trigger)}>{icon}<span className="min-w-0 flex-1"><span className={`block ${titleText}`} style={buttonTitleStyle(settings)}>{component.title}</span>{body && <span className={`mt-1 block leading-5 ${bodyText}`} style={buttonDescriptionStyle(settings)}>{body}</span>}</span><ExternalLink size={18} className="shrink-0 text-[var(--card-muted)]" /></a>; }
   return null;
 }

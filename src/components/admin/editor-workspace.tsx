@@ -28,7 +28,7 @@ const contentOptions: Array<{ type: "service_link" | ComponentType; label: strin
   { type: "service_link", label: "Komponen / Link", description: "Tombol dengan ikon, judul, deskripsi, dan URL.", icon: Link2 },
   { type: "text", label: "Text", description: "Teks informasi dengan judul dan isi yang bisa diatur.", icon: Type },
   { type: "image", label: "Image", description: "Pilih file gambar dan unggah langsung ke Storage.", icon: FileImage },
-  { type: "embed", label: "Embed", description: "Sematkan halaman atau media dari URL aman.", icon: Link2 },
+  { type: "embed", label: "Video / Embed", description: "Tampilkan video YouTube, Vimeo, file video, atau media dari URL aman.", icon: Link2 },
   { type: "divider", label: "Divider", description: "Garis pembatas antar komponen yang bisa dipindahkan.", icon: Minus },
   { type: "whatsapp", label: "WhatsApp", description: "Tombol kontak langsung ke WhatsApp.", icon: Link2 },
   { type: "email", label: "Email", description: "Tombol untuk mengirim email sekolah.", icon: Mail },
@@ -94,6 +94,7 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
   const values = draft.config ?? {};
   const update = (key: string, value: unknown) => setDraft((current) => ({ ...current, config: { ...(current.config ?? {}), [key]: value } }));
   const preview = String(values.image_url ?? "");
+
   async function chooseImage(file?: File) {
     if (!file) return;
     if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) { setMessage("Pilih gambar maksimal 5 MB."); return; }
@@ -104,8 +105,8 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
     form.append("file", file);
     try {
       const response = await fetch("/api/admin/media", { method: "POST", body: form });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      const result = await readMediaResponse(response);
+      if (!response.ok) throw new Error(result.error || "Upload gambar gagal.");
       update("image_url", result.url);
       update("image_path", result.path);
       setMessage("Gambar tersimpan di Storage.");
@@ -115,6 +116,7 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
       notifyAdmin("Upload gambar gagal.", "error");
     } finally { setUploading(false); }
   }
+
   async function removeImage() {
     const url = String(values.image_url ?? "");
     const path = String(values.image_path ?? "") || storagePathFromUrl(url);
@@ -122,36 +124,173 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
       const response = await fetch("/api/admin/media", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ path }) });
       if (!response.ok) { setMessage("Gambar gagal dihapus dari Storage."); notifyAdmin("Gambar gagal dihapus dari Storage.", "error"); return; }
     }
-    update("image_url", ""); update("image_path", ""); setMessage("Gambar dihapus dari komponen."); notifyAdmin("Gambar komponen berhasil dihapus.", "success");
+    update("image_url", "");
+    update("image_path", "");
+    setMessage("Gambar dihapus dari komponen.");
+    notifyAdmin("Gambar komponen berhasil dihapus.", "success");
   }
+
   const needsUrl = ["link", "whatsapp", "email", "instagram", "phone"].includes(draft.type);
+
   function save() {
     if (draft.type === "image" && !isSafeImageUrl(preview)) { setMessage("Pilih file gambar terlebih dahulu."); return; }
     onSave(draft.type === "location" ? { ...draft, config: { ...(draft.config ?? {}), map_title: draft.title } } : draft);
   }
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Konfigurasi komponen" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><div className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-auto rounded-[1.5rem] bg-white p-5 shadow-2xl sm:p-7"><div className="flex items-start justify-between"><div><p className="section-kicker">Konfigurasi komponen</p><h2 className="mt-1 font-display text-3xl">Atur {draft.type}</h2><p className="mt-2 text-sm text-ink/55">Komponen ini dapat dipindahkan setelah disimpan.</p></div><button onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-paper text-ink/60" aria-label="Tutup konfigurasi"><X size={18} /></button></div><div className="mt-7 space-y-4">{!(draft.type === "service_links" || draft.type === "location" || draft.type === "contact") && <Field label="Judul" value={draft.title} onChange={(value) => setDraft({ ...draft, title: value })} placeholder="Judul komponen" />}{draft.type === "location" && <div className="space-y-4 rounded-xl bg-mist p-4"><label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_map !== false} onChange={(event) => update("show_map", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan peta</span></label><label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_title === true} onChange={(event) => update("show_title", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan judul peta</span></label><div className="grid gap-4 sm:grid-cols-2"><Field label="Latitude" value={String(values.latitude ?? "")} onChange={(value) => update("latitude", Number(value))} placeholder="-6.969376957480174" /><Field label="Longitude" value={String(values.longitude ?? "")} onChange={(value) => update("longitude", Number(value))} placeholder="109.09867575461168" /></div><p className="text-xs leading-5 text-ink/50">Titik ini menjadi pusat peta dan tautan Google Maps.</p></div>}{draft.type === "contact" && <div className="grid gap-4 rounded-xl bg-mist p-4 sm:grid-cols-2">
-  <SelectField label="Tata letak" value={String(values.display_mode ?? "full")} onChange={(value) => update("display_mode", value)} options={[["full", "Grid lengkap"], ["compact", "Daftar"], ["icon", "Icon saja"]]} />
-  <SelectField label="Bentuk kartu" value={String(values.card_shape ?? "rounded")} onChange={(value) => update("card_shape", value)} options={[["rounded", "Rounded"], ["bubble", "Bubble"], ["square", "Kotak"]]} />
-  <SelectField label="Gaya kartu" value={String(values.card_style ?? "solid")} onChange={(value) => update("card_style", value)} options={[["solid", "Solid"], ["outline", "Outline"], ["tinted", "Berwarna tema"]]} />
-  <SelectField label="Jarak antar item" value={String(values.gap_size ?? "normal")} onChange={(value) => update("gap_size", value)} options={[["tight", "Rapat"], ["normal", "Normal"], ["wide", "Lapang"]]} />
-  <SelectField label="Efek animasi tombol" value={String(values.button_effect ?? "inherit")} onChange={(value) => update("button_effect", value)} options={buttonEffectOptions} />
-  <SelectField label="Pemicu efek tombol" value={String(values.button_effect_trigger ?? "inherit")} onChange={(value) => update("button_effect_trigger", value)} options={buttonEffectTriggerOptions} />
-  <SelectField label="Kecepatan efek" value={String(values.button_effect_speed ?? "inherit")} onChange={(value) => update("button_effect_speed", value)} options={buttonEffectSpeedOptions} />
-  <SelectField label="Animasi hover" value={String(values.animation ?? "glow")} onChange={(value) => update("animation", value)} options={[["none", "Tanpa animasi"], ["glow", "Menyala saat diarahkan"], ["fade", "Muncul perlahan"]]} />
-  <SelectField label="Ukuran icon" value={String(values.icon_size ?? "medium")} onChange={(value) => update("icon_size", value)} options={[["small", "Kecil"], ["medium", "Sedang"], ["large", "Besar"]]} />
-  <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.with_card !== false} onChange={(event) => update("with_card", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Gunakan card</span></label>
-  <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_icons !== false} onChange={(event) => update("show_icons", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan icon</span></label>
-  <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_labels !== false} onChange={(event) => update("show_labels", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan label</span></label>
-  <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_values !== false} onChange={(event) => update("show_values", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan nilai</span></label>
-</div>}{draft.type === "text" && <><TextArea label="Isi" value={String(values.body ?? "")} onChange={(value) => update("body", value)} /><label className="flex min-h-12 items-center gap-3 rounded-xl bg-mist px-4"><input type="checkbox" checked={values.with_card !== false} onChange={(event) => update("with_card", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span><span className="block text-sm font-bold">Gunakan card</span><span className="block text-xs text-ink/45">Matikan untuk menampilkan text tanpa card.</span></span></label></>}{draft.type === "image" && <div className="rounded-xl border border-dashed border-moss/40 bg-mist p-4"><div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-paper">{preview ? <Image src={preview} alt={String(values.alt ?? draft.title)} fill sizes="480px" unoptimized className="object-contain" /> : <ImagePlus size={28} className="text-ink/30" />}</div><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={(event) => chooseImage(event.target.files?.[0])} /><div className="mt-3 flex flex-wrap gap-2"><button onClick={() => fileInput.current?.click()} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-moss px-3 text-xs font-bold text-white"><ImagePlus size={15} /> {uploading ? "Mengunggah..." : "Pilih file"}</button>{preview && <button onClick={removeImage} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50"><Trash2 size={15} /> Hapus gambar</button>}</div><p className="mt-2 text-xs leading-5 text-ink/50">PNG, JPG, WebP, atau SVG, maksimal 5 MB.</p><Field label="Teks alternatif" value={String(values.alt ?? "")} onChange={(value) => update("alt", value)} placeholder="Deskripsi gambar" /></div>}{draft.type === "divider" && <div className="grid gap-4 sm:grid-cols-2"><SelectField label="Gaya garis" value={String(values.style ?? "solid")} onChange={(value) => update("style", value)} options={[["solid", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"], ["double", "Double"]]} /><SelectField label="Jarak vertikal" value={String(values.spacing ?? "comfortable")} onChange={(value) => update("spacing", value)} options={[["compact", "Rapat"], ["comfortable", "Nyaman"], ["airy", "Lapang"]]} /><label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">Ketebalan garis</span><input type="range" min="1" max="8" value={Number(values.height ?? 1)} onChange={(event) => update("height", Number(event.target.value))} className="mt-2 w-full accent-[#2F6B55]" /></label><ColorField label="Warna garis" value={String(values.color ?? "#D9E1D9")} onChange={(value) => update("color", value)} /></div>}{draft.type === "embed" && <Field label="URL embed" value={String(values.embed_url ?? "")} onChange={(value) => update("embed_url", value)} placeholder="https://..." />}{needsUrl && <Field label="URL tujuan" value={String(values.href ?? "")} onChange={(value) => update("href", value)} placeholder={draft.type === "email" ? "mailto:admin@sekolah.id" : draft.type === "phone" ? "tel:+622836196366" : "https://..."} />}{needsUrl && <TextArea label="Deskripsi singkat" value={String(values.body ?? "")} onChange={(value) => update("body", value)} />}{needsUrl && <div className="grid gap-4 rounded-xl bg-mist p-4 sm:grid-cols-2"><SelectField label="Efek animasi tombol" value={String(values.button_effect ?? "inherit")} onChange={(value) => update("button_effect", value)} options={buttonEffectOptions} /><SelectField label="Pemicu efek tombol" value={String(values.button_effect_trigger ?? "inherit")} onChange={(value) => update("button_effect_trigger", value)} options={buttonEffectTriggerOptions} /><SelectField label="Kecepatan efek" value={String(values.button_effect_speed ?? "inherit")} onChange={(value) => update("button_effect_speed", value)} options={buttonEffectSpeedOptions} /></div>}{draft.type !== "divider" && <label className="flex min-h-12 items-center gap-3 rounded-xl bg-mist px-4"><input type="checkbox" checked={draft.is_enabled} onChange={(event) => setDraft({ ...draft, is_enabled: event.target.checked })} className="h-4 w-4 accent-[#2F6B55]" /><span><span className="block text-sm font-bold">Tampilkan komponen</span><span className="block text-xs text-ink/45">Komponen nonaktif tetap tersimpan di draf.</span></span></label>}</div>{message && <p role="status" className="mt-5 rounded-xl bg-mist px-4 py-3 text-sm font-semibold text-ink/70">{message}</p>}<ModalActions onClose={onClose} onSave={save} label="Simpan komponen" /></div></div>;
+
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Konfigurasi komponen" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-auto rounded-[1.5rem] bg-white p-5 shadow-2xl sm:p-7">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="section-kicker">Konfigurasi komponen</p>
+          <h2 className="mt-1 font-display text-3xl">Atur {draft.type}</h2>
+          <p className="mt-2 text-sm text-ink/55">Komponen ini dapat dipindahkan setelah disimpan.</p>
+        </div>
+        <button onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-paper text-ink/60" aria-label="Tutup konfigurasi"><X size={18} /></button>
+      </div>
+
+      <div className="mt-7 space-y-4">
+        {!(draft.type === "service_links" || draft.type === "location" || draft.type === "contact") && <Field label="Judul" value={draft.title} onChange={(value) => setDraft({ ...draft, title: value })} placeholder="Judul komponen" />}
+
+        {draft.type === "location" && <div className="space-y-4 rounded-xl bg-mist p-4">
+          <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_map !== false} onChange={(event) => update("show_map", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan peta</span></label>
+          <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_title === true} onChange={(event) => update("show_title", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan judul peta</span></label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Latitude" value={String(values.latitude ?? "")} onChange={(value) => update("latitude", Number(value))} placeholder="-6.969376957480174" />
+            <Field label="Longitude" value={String(values.longitude ?? "")} onChange={(value) => update("longitude", Number(value))} placeholder="109.09867575461168" />
+          </div>
+          <p className="text-xs leading-5 text-ink/50">Titik ini menjadi pusat peta dan tautan Google Maps.</p>
+        </div>}
+
+        {draft.type === "contact" && <div className="grid gap-4 rounded-xl bg-mist p-4 sm:grid-cols-2">
+          <SelectField label="Tata letak" value={String(values.display_mode ?? "full")} onChange={(value) => update("display_mode", value)} options={[["full", "Grid lengkap"], ["compact", "Daftar"], ["icon", "Icon saja"]]} />
+          <SelectField label="Bentuk kartu" value={String(values.card_shape ?? "rounded")} onChange={(value) => update("card_shape", value)} options={[["rounded", "Rounded"], ["bubble", "Bubble"], ["square", "Kotak"]]} />
+          <SelectField label="Gaya kartu" value={String(values.card_style ?? "solid")} onChange={(value) => update("card_style", value)} options={[["solid", "Solid"], ["outline", "Outline"], ["tinted", "Berwarna tema"]]} />
+          <SelectField label="Jarak antar item" value={String(values.gap_size ?? "normal")} onChange={(value) => update("gap_size", value)} options={[["tight", "Rapat"], ["normal", "Normal"], ["wide", "Lapang"]]} />
+          <SelectField label="Efek animasi tombol" value={String(values.button_effect ?? "inherit")} onChange={(value) => update("button_effect", value)} options={buttonEffectOptions} />
+          <SelectField label="Pemicu efek tombol" value={String(values.button_effect_trigger ?? "inherit")} onChange={(value) => update("button_effect_trigger", value)} options={buttonEffectTriggerOptions} />
+          <SelectField label="Kecepatan efek" value={String(values.button_effect_speed ?? "inherit")} onChange={(value) => update("button_effect_speed", value)} options={buttonEffectSpeedOptions} />
+          <SelectField label="Animasi hover" value={String(values.animation ?? "glow")} onChange={(value) => update("animation", value)} options={[["none", "Tanpa animasi"], ["glow", "Menyala saat diarahkan"], ["fade", "Muncul perlahan"]]} />
+          <SelectField label="Ukuran icon" value={String(values.icon_size ?? "medium")} onChange={(value) => update("icon_size", value)} options={[["small", "Kecil"], ["medium", "Sedang"], ["large", "Besar"]]} />
+          <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.with_card !== false} onChange={(event) => update("with_card", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Gunakan card</span></label>
+          <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_icons !== false} onChange={(event) => update("show_icons", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan icon</span></label>
+          <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_labels !== false} onChange={(event) => update("show_labels", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan label</span></label>
+          <label className="flex min-h-11 items-center gap-3"><input type="checkbox" checked={values.show_values !== false} onChange={(event) => update("show_values", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span className="text-sm font-bold">Tampilkan nilai</span></label>
+        </div>}
+
+        {draft.type === "text" && <><TextArea label="Isi" value={String(values.body ?? "")} onChange={(value) => update("body", value)} /><label className="flex min-h-12 items-center gap-3 rounded-xl bg-mist px-4"><input type="checkbox" checked={values.with_card !== false} onChange={(event) => update("with_card", event.target.checked)} className="h-4 w-4 accent-[#2F6B55]" /><span><span className="block text-sm font-bold">Gunakan card</span><span className="block text-xs text-ink/45">Matikan untuk menampilkan text tanpa card.</span></span></label></>}
+
+        {draft.type === "image" && <div className="rounded-xl border border-dashed border-moss/40 bg-mist p-4">
+          <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-lg bg-paper">{preview ? <Image src={preview} alt={String(values.alt ?? draft.title)} fill sizes="480px" unoptimized className="object-contain" /> : <ImagePlus size={28} className="text-ink/30" />}</div>
+          <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={(event) => chooseImage(event.target.files?.[0])} />
+          <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => fileInput.current?.click()} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-moss px-3 text-xs font-bold text-white"><ImagePlus size={15} /> {uploading ? "Mengunggah..." : "Pilih file"}</button>{preview && <button onClick={removeImage} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50"><Trash2 size={15} /> Hapus gambar</button>}</div>
+          <p className="mt-2 text-xs leading-5 text-ink/50">PNG, JPG, WebP, atau SVG, maksimal 5 MB.</p>
+          <Field label="Teks alternatif" value={String(values.alt ?? "")} onChange={(value) => update("alt", value)} placeholder="Deskripsi gambar" />
+        </div>}
+
+        {draft.type === "divider" && <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField label="Gaya garis" value={String(values.style ?? "solid")} onChange={(value) => update("style", value)} options={[["solid", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"], ["double", "Double"]]} />
+          <SelectField label="Jarak vertikal" value={String(values.spacing ?? "comfortable")} onChange={(value) => update("spacing", value)} options={[["compact", "Rapat"], ["comfortable", "Nyaman"], ["airy", "Lapang"]]} />
+          <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">Ketebalan garis</span><input type="range" min="1" max="8" value={Number(values.height ?? 1)} onChange={(event) => update("height", Number(event.target.value))} className="mt-2 w-full accent-[#2F6B55]" /></label>
+          <ColorField label="Warna garis" value={String(values.color ?? "#D9E1D9")} onChange={(value) => update("color", value)} />
+        </div>}
+
+        {draft.type === "embed" && <>
+          <Field label="URL embed" value={String(values.embed_url ?? "")} onChange={(value) => update("embed_url", value)} placeholder="https://..." />
+          <div className="grid gap-3 rounded-xl bg-mist p-4 sm:grid-cols-2">
+            <label className="flex min-h-11 items-start gap-3">
+              <input type="checkbox" checked={values.autoplay !== false} onChange={(event) => update("autoplay", event.target.checked)} className="mt-1 h-4 w-4 accent-[#2F6B55]" />
+              <span><span className="block text-sm font-bold">Putar otomatis</span><span className="block text-xs text-ink/45">Video mulai saat halaman publik siap.</span></span>
+            </label>
+            <label className="flex min-h-11 items-start gap-3">
+              <input type="checkbox" checked={values.autoplay_audio === true} disabled={values.autoplay === false} onChange={(event) => update("autoplay_audio", event.target.checked)} className="mt-1 h-4 w-4 accent-[#2F6B55] disabled:opacity-40" />
+              <span><span className="block text-sm font-bold">Aktifkan audio saat autoplay</span><span className="block text-xs text-ink/45">Browser dapat memblokir autoplay bersuara.</span></span>
+            </label>
+          </div>
+        </>}
+
+        {needsUrl && <Field label="URL tujuan" value={String(values.href ?? "")} onChange={(value) => update("href", value)} placeholder={draft.type === "email" ? "mailto:admin@sekolah.id" : draft.type === "phone" ? "tel:+622836196366" : "https://..."} />}
+        {needsUrl && <TextArea label="Deskripsi singkat" value={String(values.body ?? "")} onChange={(value) => update("body", value)} />}
+        {needsUrl && <div className="grid gap-4 rounded-xl bg-mist p-4 sm:grid-cols-2">
+          <SelectField label="Efek animasi tombol" value={String(values.button_effect ?? "inherit")} onChange={(value) => update("button_effect", value)} options={buttonEffectOptions} />
+          <SelectField label="Pemicu efek tombol" value={String(values.button_effect_trigger ?? "inherit")} onChange={(value) => update("button_effect_trigger", value)} options={buttonEffectTriggerOptions} />
+          <SelectField label="Kecepatan efek" value={String(values.button_effect_speed ?? "inherit")} onChange={(value) => update("button_effect_speed", value)} options={buttonEffectSpeedOptions} />
+        </div>}
+
+        {draft.type !== "divider" && <label className="flex min-h-12 items-center gap-3 rounded-xl bg-mist px-4"><input type="checkbox" checked={draft.is_enabled} onChange={(event) => setDraft({ ...draft, is_enabled: event.target.checked })} className="h-4 w-4 accent-[#2F6B55]" /><span><span className="block text-sm font-bold">Tampilkan komponen</span><span className="block text-xs text-ink/45">Komponen nonaktif tetap tersimpan di draf.</span></span></label>}
+      </div>
+
+      {message && <p role="status" className="mt-5 rounded-xl bg-mist px-4 py-3 text-sm font-semibold text-ink/70">{message}</p>}
+      <ModalActions onClose={onClose} onSave={save} label="Simpan komponen" />
+    </div>
+  </div>;
 }
-function defaultContentConfig(type: ComponentType) { if (type === "text") return { body: "Tulis informasi di sini.", with_card: true }; if (type === "image") return { image_url: "", image_path: "", alt: "" }; if (type === "embed") return { embed_url: "" }; if (type === "divider") return { style: "solid", height: 1, color: "#D9E1D9", spacing: "comfortable" }; if (type === "whatsapp") return { href: "https://wa.me/", body: "Hubungi admin sekolah" }; if (type === "email") return { href: "mailto:" }; if (type === "instagram") return { href: "https://instagram.com/" }; if (type === "phone") return { href: "tel:" }; return { href: "https://", body: "" }; }
+function defaultContentConfig(type: ComponentType) { if (type === "text") return { body: "Tulis informasi di sini.", with_card: true }; if (type === "image") return { image_url: "", image_path: "", alt: "" }; if (type === "embed") return { embed_url: "", autoplay: true, autoplay_audio: false }; if (type === "divider") return { style: "solid", height: 1, color: "#D9E1D9", spacing: "comfortable" }; if (type === "whatsapp") return { href: "https://wa.me/", body: "Hubungi admin sekolah" }; if (type === "email") return { href: "mailto:" }; if (type === "instagram") return { href: "https://instagram.com/" }; if (type === "phone") return { href: "tel:" }; return { href: "https://", body: "" }; }
 function storagePathFromUrl(value: string) { const marker = "/storage/v1/object/public/microsite-media/"; return value.includes(marker) ? decodeURIComponent(value.split(marker)[1]) : ""; }
 async function deleteStorageAsset(path: string) { return fetch("/api/admin/media", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ path }) }); }
 function notifyAdmin(message: string, tone: "success" | "error") { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("admin-toast", { detail: { message, tone } })); }
+async function readMediaResponse(response: Response) {
+  const text = await response.text();
+  if (!text) throw new Error(`Server upload tidak mengembalikan respons (HTTP ${response.status}).`);
+  try {
+    return JSON.parse(text) as { error?: string; url?: string; path?: string };
+  } catch {
+    throw new Error(`Server upload mengembalikan respons tidak valid (HTTP ${response.status}).`);
+  }
+}
 function isSafeImageUrl(value: string) { return value.startsWith("blob:") || /^https:\/\//.test(value) || value.startsWith("/"); }
 function useEscape(onClose: () => void) { useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); }; window.addEventListener("keydown", onKeyDown); return () => window.removeEventListener("keydown", onKeyDown); }, [onClose]); }
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-12 w-full rounded-xl border border-ink/15 bg-paper/50 px-4 text-sm outline-none focus:border-moss focus:ring-4 focus:ring-moss/10" /></label>; }
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+  const isEmbedUrl = label === "URL embed";
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+  const uploadedVideoPath = isEmbedUrl ? storagePathFromUrl(value) : "";
+
+  async function uploadVideo(file?: File) {
+    if (!file) return;
+    const allowed = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime"]);
+    if (!allowed.has(file.type) || file.size > 100 * 1024 * 1024) {
+      setError("Pilih video MP4, WebM, OGG, atau MOV maksimal 100 MB.");
+      return;
+    }
+    setError("");
+    setUploading(true);
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const response = await fetch("/api/admin/media", { method: "POST", body: form });
+      const result = await readMediaResponse(response);
+      if (!response.ok) throw new Error(result.error || "Upload video gagal.");
+      onChange(String(result.url));
+      notifyAdmin("Video berhasil diunggah ke Supabase Storage.", "success");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Upload video gagal.");
+      notifyAdmin("Upload video gagal.", "error");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeVideo() {
+    if (!uploadedVideoPath) return;
+    setError("");
+    setDeleting(true);
+    try {
+      const response = await deleteStorageAsset(uploadedVideoPath);
+      const result = await readMediaResponse(response);
+      if (!response.ok) throw new Error(result.error || "Video gagal dihapus.");
+      onChange("");
+      notifyAdmin("Video dan file Storage berhasil dihapus.", "success");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Video gagal dihapus.");
+      notifyAdmin("Video gagal dihapus.", "error");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return <div className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-12 w-full rounded-xl border border-ink/15 bg-paper/50 px-4 text-sm outline-none focus:border-moss focus:ring-4 focus:ring-moss/10" />{isEmbedUrl && <div className="mt-3 flex flex-wrap items-center gap-2"><label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-moss px-3 text-xs font-bold text-white hover:brightness-110"><Plus size={15} />{uploading ? "Mengunggah..." : "Upload video"}<input type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" className="hidden" disabled={uploading || deleting} onChange={(event) => { void uploadVideo(event.target.files?.[0]); event.target.value = ""; }} /></label>{uploadedVideoPath && <button type="button" onClick={() => void removeVideo()} disabled={uploading || deleting} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"><Trash2 size={15} />{deleting ? "Menghapus..." : "Hapus video"}</button>}<span className="text-xs text-ink/45">MP4, WebM, OGG, atau MOV · maksimal 100 MB</span></div>}{error && <p role="alert" className="mt-2 text-xs font-semibold text-red-700">{error}</p>}</div>;
+}
 function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><textarea value={value} onChange={(event) => onChange(event.target.value)} rows={4} className="w-full resize-y rounded-xl border border-ink/15 bg-paper/50 px-4 py-3 text-sm leading-6 outline-none focus:border-moss focus:ring-4 focus:ring-moss/10" /></label>; }
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><div className="flex h-11 items-center gap-3 rounded-lg border border-ink/10 bg-paper/50 px-3"><input type="color" value={value} onChange={(event) => onChange(event.target.value)} className="h-7 w-7 cursor-pointer rounded-md border-0 bg-transparent p-0" /><span className="text-sm font-semibold">{value}</span></div></label>; }
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: Array<[string, string]>; onChange: (value: string) => void }) { return <label className="block"><span className="mb-2 block text-xs font-bold text-ink/55">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-lg border border-ink/10 bg-paper/50 px-3 text-sm font-semibold outline-none focus:border-moss">{options.map(([option, labelText]) => <option key={option} value={option}>{labelText}</option>)}</select></label>; }
