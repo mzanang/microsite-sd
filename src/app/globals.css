@@ -117,6 +117,12 @@ button, a { touch-action: manipulation; }
 /* Splash animation: the blue wave system is the portal's identity cue and keeps the transition focused on the school mark. */
 .public-splash { position: fixed; inset: 0; z-index: 100; overflow: hidden; background: #082b62; color: #fff; isolation: isolate; opacity: 1; transition: opacity .56s ease, visibility .56s ease; }
 .public-splash.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; }
+.realtime-analog-clock { position: relative; display: inline-flex; width: var(--clock-size, 2.15rem); height: var(--clock-size, 2.15rem); flex: 0 0 auto; align-items: center; justify-content: center; border: 2px solid currentColor; border-radius: 999px; }
+.realtime-analog-clock::before { position: absolute; z-index: 3; width: .28rem; height: .28rem; border-radius: 999px; background: currentColor; content: ""; }
+.realtime-analog-clock__tick { position: absolute; top: 7%; left: calc(50% - 1px); width: 2px; height: 10%; border-radius: 999px; background: currentColor; opacity: .48; transform-origin: 50% 430%; transform: rotate(calc(var(--clock-index) * 30deg)); }
+.realtime-analog-clock__hand { position: absolute; bottom: 50%; left: 50%; z-index: 2; width: 2px; border-radius: 999px; background: currentColor; transform-origin: 50% 100%; }
+.realtime-analog-clock__hand--hour { height: 28%; transform: translateX(-50%) rotate(var(--clock-hour-angle)); }
+.realtime-analog-clock__hand--minute { height: 39%; opacity: .8; transform: translateX(-50%) rotate(var(--clock-minute-angle)); }
 .splash-top-wave { position: absolute; inset: 0 0 auto; width: 100%; height: 28%; min-height: 150px; fill: #123f83; opacity: .95; }
 .splash-top-wave path { animation: splash-top-drift 12s ease-in-out infinite alternate; transform-origin: center; }
 .splash-bubbles, .splash-particles, .bottom-waves, .splash-center-glow { position: absolute; inset: 0; pointer-events: none; }

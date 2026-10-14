@@ -18,6 +18,42 @@ function defaultJakartaDate() {
   return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
 }
 
+function formatJakartaDate(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(value);
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
+}
+
+function shiftJakartaDate(date: string, days: number) {
+  const value = jakartaStart(date);
+  value.setUTCDate(value.getUTCDate() + days);
+  return formatJakartaDate(value);
+}
+
+type TrendPoint = { bucket: string; visits: number; unique_visitors: number; page_views: number; interactions: number };
+
+function fillDailyTrend(value: unknown, from: string, to: string) {
+  const points = Array.isArray(value) ? value as Array<Partial<TrendPoint>> : [];
+  const byDate = new Map(points.map((point) => [String(point.bucket ?? "").slice(0, 10), point]));
+  const trend: TrendPoint[] = [];
+  for (let date = from; date <= to; date = shiftJakartaDate(date, 1)) {
+    const point = byDate.get(date);
+    trend.push({
+      bucket: point?.bucket ? String(point.bucket) : `${date}T00:00:00`,
+      visits: Number(point?.visits ?? 0),
+      unique_visitors: Number(point?.unique_visitors ?? 0),
+      page_views: Number(point?.page_views ?? 0),
+      interactions: Number(point?.interactions ?? 0),
+    });
+  }
+  return trend;
+}
+
+function normaliseSummary(value: unknown, from: string, to: string, granularity: string) {
+  if (!value || typeof value !== "object") return {};
+  const summary = value as Record<string, unknown>;
+  return granularity === "day" ? { ...summary, trend: fillDailyTrend(summary.trend, from, to) } : summary;
+}
+
 function isValidDate(value: string | null): value is string {
   if (!value || !datePattern.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00+07:00`);
@@ -34,8 +70,9 @@ export async function GET(request: NextRequest) {
   if (!profile) return NextResponse.json({ error: "Akses analitik tidak diizinkan." }, { status: 403 });
 
   const today = defaultJakartaDate();
-  const from = isValidDate(request.nextUrl.searchParams.get("from")) ? request.nextUrl.searchParams.get("from")! : today;
+  const requestedFrom = isValidDate(request.nextUrl.searchParams.get("from")) ? request.nextUrl.searchParams.get("from")! : "";
   const to = isValidDate(request.nextUrl.searchParams.get("to")) ? request.nextUrl.searchParams.get("to")! : today;
+  const from = requestedFrom || shiftJakartaDate(to, -6);
   const fromDate = jakartaStart(from);
   const toExclusive = nextJakartaDay(to);
   if (fromDate >= toExclusive) return NextResponse.json({ error: "Tanggal mulai harus sebelum atau sama dengan tanggal akhir." }, { status: 400 });
@@ -49,10 +86,12 @@ export async function GET(request: NextRequest) {
   ]);
   if (current.error || previous.error) return NextResponse.json({ error: "Data analitik belum dapat dimuat.", details: current.error?.message || previous.error?.message }, { status: 500 });
 
+  const previousFromDate = formatJakartaDate(previousFrom);
+  const previousToDate = shiftJakartaDate(from, -1);
   return NextResponse.json({
     timezone: "Asia/Jakarta",
     range: { from, to, granularity },
-    current: current.data ?? {},
-    previous: previous.data ?? {},
+    current: normaliseSummary(current.data, from, to, granularity),
+    previous: normaliseSummary(previous.data, previousFromDate, previousToDate, granularity),
   }, { headers: { "Cache-Control": "private, no-store" } });
 }

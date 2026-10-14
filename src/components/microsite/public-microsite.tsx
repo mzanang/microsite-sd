@@ -18,6 +18,7 @@ const fontFamilyMap = {
   "plus-jakarta": "var(--font-plus-jakarta), Arial, sans-serif",
   inter: "var(--font-inter), Arial, sans-serif",
   "dm-sans": "var(--font-dm-sans), Arial, sans-serif",
+  digital: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace",
 };
 const sizeMap = {
   title: { small: "0.9rem", medium: "1rem", large: "1.15rem" },
@@ -188,7 +189,7 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
           </a>
           <p className="mx-auto mt-3 max-w-xl whitespace-pre-line leading-6 text-[length:var(--intro-size)] font-[var(--intro-weight)] text-[var(--intro-color)] [font-family:var(--intro-font)]" style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2, overflow: "hidden" }}>{microsite.description}</p>
         </div>
-        <div data-aos="fade-up" className={`mb-8 flex ${settings.time_position === "left" ? "justify-start" : settings.time_position === "right" ? "justify-end" : "justify-center"}`}><time dateTime={now.toISOString()} className={`px-4 py-2 text-xs font-semibold ${timeFrameClass(settings, radius, card)}`} style={timeFrameStyle(settings)} aria-label="Waktu sekarang">{settings.time_layout === "split" ? <SplitTime value={now} settings={settings} /> : formatJakartaTime(now, settings)}</time></div>
+        <div data-aos="fade-up" className={`mb-8 flex ${settings.time_layout === "split" ? settings.time_card_mode === "separate" ? "justify-center" : "w-full" : settings.time_position === "left" ? "justify-start" : settings.time_position === "right" ? "justify-end" : "justify-center"}`}><time dateTime={now.toISOString()} className={`${settings.time_layout === "split" && settings.time_card_mode !== "separate" ? "w-full" : ""} ${settings.time_layout !== "split" || settings.time_card_mode === "single" ? "px-4 py-2" : ""} text-xs font-semibold ${settings.time_layout === "split" && settings.time_card_mode !== "single" ? "" : timeFrameClass(settings, radius, card)}`} style={timeFrameStyle(settings)} aria-label="Waktu sekarang">{settings.time_layout === "split" ? <SplitTime value={now} settings={settings} radius={radius} card={card} /> : <TimeDisplay value={now} settings={settings} />}</time></div>
         <div className={spacingClass}>{orderedComponents.map((component, index) => <div key={component.id} data-aos="fade-up" style={{ "--aos-delay": `${Math.min(index * 70, 280)}ms` } as React.CSSProperties}><PublicComponent component={component} config={config} services={services} contacts={contacts} radius={radius} card={card} titleText={titleText} bodyText={bodyText} linkSpacingClass={linkSpacingClass} /></div>)}</div>
         <footer data-aos="fade-up" className="flex items-center justify-between pb-7 pt-14 text-xs text-[var(--footer-text)]"><span>{String.fromCharCode(169)} {new Date().getFullYear()} {microsite.title}</span><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Microsite resmi</span></footer>
       </section>
@@ -345,17 +346,28 @@ function PublicComponent({ component, config, services, contacts, radius, card, 
   return null;
 }
 
-function timeParts(value: Date) {
+function formatDateByStyle(value: Date, style: MicrositeConfig["settings"]["time_date_format"]) {
+  const numericParts = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "2-digit", month: "2-digit", year: "numeric" }).formatToParts(value);
+  const day = numericParts.find((part) => part.type === "day")?.value ?? "00";
+  const month = numericParts.find((part) => part.type === "month")?.value ?? "00";
+  const year = numericParts.find((part) => part.type === "year")?.value ?? "0000";
+  if (style === "short") return new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric" }).format(value);
+  if (style === "dd/mm/yyyy") return `${day}/${month}/${year}`;
+  if (style === "dd-mm-yyyy") return `${day}-${month}-${year}`;
+  if (style === "yyyy-mm-dd") return `${year}-${month}-${day}`;
+  return new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "2-digit", month: "long", year: "numeric" }).format(value);
+}
+function timeParts(value: Date, dateFormat: MicrositeConfig["settings"]["time_date_format"]) {
   const weekday = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", weekday: "long" }).format(value);
-  const date = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", day: "2-digit", month: "long", year: "numeric" }).format(value);
+  const date = formatDateByStyle(value, dateFormat);
   const parts = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(value);
   const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
   const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
-  return { weekday, date, time: `${hour}:${minute}` };
+  return { weekday, date, time: `${hour}:${minute}`, hour: Number(hour), minute: Number(minute) };
 }
 function timeSeparatorValue(separator: MicrositeConfig["settings"]["time_separator"]) { return separator === "dot" ? "·" : separator === "dash" ? "—" : separator === "slash" ? "/" : separator === "line" ? "│" : ""; }
 function formatJakartaTime(value: Date, settings: MicrositeConfig["settings"]) {
-  const { weekday, date, time } = timeParts(value);
+  const { weekday, date, time } = timeParts(value, settings.time_date_format);
   const suffix = settings.time_show_timezone ? " WIB" : "";
   const separator = timeSeparatorValue(settings.time_separator);
   const join = (left: string, right: string) => separator ? `${left} ${separator} ${right}` : `${left} ${right}`;
@@ -365,18 +377,42 @@ function formatJakartaTime(value: Date, settings: MicrositeConfig["settings"]) {
   return `${join(`${weekday}, ${date}`, time)}${suffix}`;
 }
 function timeFrameClass(settings: MicrositeConfig["settings"], radius: string, card: string) {
+  if (settings.time_card_mode === "none") return "";
   if (settings.time_style === "pill") return `${card} rounded-full`;
   if (settings.time_style === "outline") return `${card} rounded-xl bg-transparent shadow-none`;
   if (settings.time_style === "minimal") return `${card} rounded-none border-x-0 border-t-0 bg-transparent shadow-none`;
   return `${card} ${radius}`;
 }
-function timeFrameStyle(settings: MicrositeConfig["settings"]): React.CSSProperties { return settings.time_style === "minimal" || settings.time_style === "outline" ? { color: "var(--realtime-color)", backgroundColor: "transparent" } : { color: "var(--realtime-color)" }; }
-function SplitTime({ value, settings }: { value: Date; settings: MicrositeConfig["settings"] }) {
-  const { weekday, date, time } = timeParts(value);
+function timeFrameStyle(settings: MicrositeConfig["settings"]): React.CSSProperties {
+  const legacySize = settings.time_size === "small" ? 14 : settings.time_size === "large" ? 28 : 18;
+  const size = Math.max(12, Math.min(48, Number(settings.time_size_custom ?? legacySize)));
+  const clockSize = Math.max(30, Math.min(96, size * 2.25));
+  const isDigital = settings.time_font_family === "digital";
+  const surface = settings.time_style === "minimal" || settings.time_style === "outline" ? { color: "var(--realtime-color)", backgroundColor: "transparent" } : { color: "var(--realtime-color)" };
+  return { ...surface, fontFamily: fontFamilyMap[settings.time_font_family], fontSize: `${size}px`, fontVariantNumeric: "tabular-nums", fontWeight: isDigital ? 700 : undefined, letterSpacing: isDigital ? "0.08em" : undefined, "--clock-size": `${clockSize}px` } as unknown as React.CSSProperties;
+}
+function AnalogClock({ hour, minute }: { hour: number; minute: number }) {
+  const hourAngle = ((hour % 12) + minute / 60) * 30;
+  const minuteAngle = minute * 6;
+  return <span className="realtime-analog-clock" style={{ "--clock-hour-angle": `${hourAngle}deg`, "--clock-minute-angle": `${minuteAngle}deg` } as React.CSSProperties} aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <span key={index} className="realtime-analog-clock__tick" style={{ "--clock-index": index } as React.CSSProperties} />)}<span className="realtime-analog-clock__hand realtime-analog-clock__hand--hour" /><span className="realtime-analog-clock__hand realtime-analog-clock__hand--minute" /></span>;
+}
+function TimeDisplay({ value, settings }: { value: Date; settings: MicrositeConfig["settings"] }) {
+  const { hour, minute } = timeParts(value, settings.time_date_format);
+  if (settings.time_clock_style === "analog") return <span className="inline-flex items-center gap-2"><AnalogClock hour={hour} minute={minute} />{settings.time_show_timezone && <span>WIB</span>}</span>;
+  return formatJakartaTime(value, settings);
+}
+function SplitTime({ value, settings, radius, card }: { value: Date; settings: MicrositeConfig["settings"]; radius: string; card: string }) {
+  const { weekday, date, hour, minute } = timeParts(value, settings.time_date_format);
   const left = settings.time_format === "time-only" ? "Waktu sekarang" : settings.time_format === "weekday-time" ? weekday : settings.time_format === "date-time" ? date : `${weekday}, ${date}`;
-  const right = `${time}${settings.time_show_timezone ? " WIB" : ""}`;
-  const separator = settings.time_separator;
-  return <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-1"><span>{left}</span>{separator !== "none" && <span aria-hidden="true" className={separator === "line" ? "h-5 w-px bg-current/30" : "text-current/55"}>{separator === "dot" ? "·" : separator === "dash" ? "—" : "/"}</span>}<span>{right}</span></span>;
+  const right = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}${settings.time_show_timezone ? " WIB" : ""}`;
+  const separator: string = settings.time_separator;
+  const isSeparate = settings.time_card_mode === "separate";
+  const segmentClass = isSeparate ? `${timeFrameClass(settings, radius, card)} inline-flex shrink-0 whitespace-nowrap px-4 py-2` : "";
+  const rightContent = settings.time_clock_style === "analog" ? <span className="inline-flex items-center gap-2"><AnalogClock hour={hour} minute={minute} />{settings.time_show_timezone && <span>WIB</span>}</span> : right;
+  if (separator === "line") {
+    return <span className={`${isSeparate ? "inline-flex max-w-full items-center" : "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,auto)]"} items-center gap-3 text-left`}><span className={`${isSeparate ? "shrink-0" : "min-w-0 truncate"} ${segmentClass}`}>{left}</span><span aria-hidden="true" className="inline-block h-5 w-px shrink-0" style={{ backgroundColor: "currentColor", opacity: 0.45 }} /><span className={`shrink-0 text-right ${segmentClass}`}>{rightContent}</span></span>;
+  }
+  return <span className={`${isSeparate ? "inline-flex max-w-full items-center" : "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,auto)]"} items-center gap-3 text-left`}><span className={`${isSeparate ? "shrink-0" : "min-w-0 truncate"} ${segmentClass}`}>{left}</span>{separator !== "none" ? <span aria-hidden="true" className={separator === "line" ? "h-5 w-px bg-current/30" : "text-current/55"}>{separator === "dot" ? "·" : separator === "dash" ? "—" : separator === "slash" ? "/" : ""}</span> : <span aria-hidden="true" className="w-0" />}<span className={`shrink-0 text-right ${segmentClass}`}>{rightContent}</span></span>;
 }
 function formatVerifiedDate(value?: string | null) { if (!value) return "Not published yet"; return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)); }
 function isHexColor(value: string) { return /^#[0-9A-Fa-f]{6}$/.test(value); }
