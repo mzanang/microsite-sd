@@ -11,6 +11,7 @@ import { AppIcon, ServiceIcon } from "@/components/microsite/icon";
 import { cn } from "@/lib/utils";
 import { PublicMicrosite } from "@/components/microsite/public-microsite";
 import { QuickPublishButton } from "@/components/admin/quick-publish-button";
+import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const iconOptions = ["book-open", "book-marked", "book-open-check", "landmark", "school", "building", "message-circle", "library", "globe", "map", "phone", "instagram", "youtube", "mail", "whatsapp", "calendar", "file-text", "graduation-cap", "users", "download", "megaphone", "clipboard-list", "help", "newspaper", "handshake", "chart"];
 const fixedTypes = ["service_links", "location", "contact"];
@@ -232,7 +233,7 @@ async function readMediaResponse(response: Response) {
   const text = await response.text();
   if (!text) throw new Error(`Server upload tidak mengembalikan respons (HTTP ${response.status}).`);
   try {
-    return JSON.parse(text) as { error?: string; url?: string; path?: string };
+    return JSON.parse(text) as { error?: string; url?: string; path?: string; token?: string };
   } catch {
     throw new Error(`Server upload mengembalikan respons tidak valid (HTTP ${response.status}).`);
   }
@@ -255,15 +256,31 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
     }
     setError("");
     setUploading(true);
-    const form = new FormData();
-    form.append("file", file);
+    let uploadedPath = "";
     try {
-      const response = await fetch("/api/admin/media", { method: "POST", body: form });
-      const result = await readMediaResponse(response);
-      if (!response.ok) throw new Error(result.error || "Upload video gagal.");
-      onChange(String(result.url));
+      const prepareResponse = await fetch("/api/admin/media", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "prepare", originalName: file.name, mimeType: file.type, fileSize: file.size }),
+      });
+      const prepareResult = await readMediaResponse(prepareResponse);
+      if (!prepareResponse.ok || !prepareResult.path || !prepareResult.token) throw new Error(prepareResult.error || "Link upload video gagal dibuat.");
+
+      const { error: storageError } = await createSupabaseBrowserClient().storage.from("microsite-media").uploadToSignedUrl(prepareResult.path, prepareResult.token, file);
+      if (storageError) throw new Error("Upload video ke Storage gagal.");
+      uploadedPath = prepareResult.path;
+
+      const completeResponse = await fetch("/api/admin/media", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "complete", path: prepareResult.path, originalName: file.name, mimeType: file.type, fileSize: file.size }),
+      });
+      const completeResult = await readMediaResponse(completeResponse);
+      if (!completeResponse.ok || !completeResult.url) throw new Error(completeResult.error || "Metadata video gagal disimpan.");
+      onChange(completeResult.url);
       notifyAdmin("Video berhasil diunggah ke Supabase Storage.", "success");
     } catch (uploadError) {
+      if (uploadedPath) await deleteStorageAsset(uploadedPath).catch(() => undefined);
       setError(uploadError instanceof Error ? uploadError.message : "Upload video gagal.");
       notifyAdmin("Upload video gagal.", "error");
     } finally {
