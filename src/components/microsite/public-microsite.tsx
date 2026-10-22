@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import { QRCodeCanvas } from "qrcode.react";
-import { ArrowUpRight, Check, Copy, ExternalLink, MapPin, MessageCircle, Moon, Share2, Sun, X } from "lucide-react";
+import { ArrowUpRight, Check, Copy, ExternalLink, Eye, MapPin, MessageCircle, Moon, Share2, Sun, UsersRound, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient, supabaseConfigured } from "@/lib/supabase/client";
 import type { MicrositeConfig } from "@/types/microsite";
 import { AppIcon, ServiceIcon } from "@/components/microsite/icon";
 import { PublicSplash } from "@/components/public/public-splash";
 import { isSafeUrl } from "@/lib/utils";
-import { trackPublicEvent, trackPublicPageView } from "@/lib/public-analytics";
+import { getPublicSessionId, trackPublicEvent, trackPublicPageView } from "@/lib/public-analytics";
 
 type Modal = "verified" | "share" | null;
 
@@ -194,12 +194,66 @@ export function PublicMicrosite({ config: initialConfig, realtime = true, showSp
         </div>
         <div data-aos="fade-up" className={`mb-8 flex ${settings.time_layout === "split" ? settings.time_card_mode === "separate" ? "justify-center" : "w-full" : settings.time_position === "left" ? "justify-start" : settings.time_position === "right" ? "justify-end" : "justify-center"}`}><time dateTime={now.toISOString()} className={`${settings.time_layout === "split" && settings.time_card_mode !== "separate" ? "w-full" : ""} ${settings.time_layout !== "split" || settings.time_card_mode === "single" ? "px-4 py-2" : ""} text-xs font-semibold ${settings.time_layout === "split" && settings.time_card_mode !== "single" ? "" : timeFrameClass(settings, radius, card)}`} style={timeFrameStyle(settings)} aria-label="Waktu sekarang">{settings.time_layout === "split" ? <SplitTime value={now} settings={settings} radius={radius} card={card} /> : <TimeDisplay value={now} settings={settings} />}</time></div>
         <div className={spacingClass}>{orderedComponents.map((component, index) => <div key={component.id} data-aos="fade-up" style={{ "--aos-delay": `${Math.min(index * 70, 280)}ms` } as React.CSSProperties}><PublicComponent component={component} config={config} services={services} contacts={contacts} radius={radius} card={card} titleText={titleText} bodyText={bodyText} linkSpacingClass={linkSpacingClass} /></div>)}</div>
-        <footer data-aos="fade-up" className="flex items-center justify-between pb-7 pt-14 text-xs text-[var(--footer-text)]"><span>{String.fromCharCode(169)} {new Date().getFullYear()} {microsite.title}</span><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Microsite resmi</span></footer>
+        <footer data-aos="fade-up" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pb-7 pt-14 text-xs text-[var(--footer-text)]"><span>{String.fromCharCode(169)} {new Date().getFullYear()} {microsite.title}</span><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" /> Microsite resmi</span></footer>
+        {realtime && <LiveVisitorStats />}
       </section>
     </div>
     {modal === "verified" && <ModalShell title="Verified Status" onClose={() => setModal(null)}><div className="flex flex-col items-center text-center"><div className="relative h-24 w-24 overflow-hidden rounded-full bg-white p-2 ring-4 ring-[#2388f4]/20"><Image src={logoUrl} alt="Logo sekolah" fill sizes="96px" className="object-contain p-2" /></div><div className="mt-6 w-full space-y-4 text-sm"><div><p className="text-ink/55">This microsite belongs to:</p><p className="mt-1 font-bold text-ink underline decoration-ink/25 underline-offset-4">{microsite.title}</p></div><div><p className="text-ink/55">Type:</p><p className="mt-1 font-semibold text-ink">School</p></div><div><p className="text-ink/55">Verified At:</p><p className="mt-1 font-semibold text-ink">{formatVerifiedDate(microsite.last_published_at)}</p></div></div><p className="mt-6 text-xs leading-5 text-ink/50">Identitas ini dikelola oleh SD Negeri Dukuhwaru 01 untuk keperluan informasi publik sekolah.</p></div></ModalShell>}
     {modal === "share" && <ModalShell title="Bagikan microsite" onClose={() => setModal(null)}><div className="flex flex-col items-center text-center"><div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm"><QRCodeCanvas value={shareUrl} size={220} level="H" imageSettings={{ src: logoUrl, height: 42, width: 42, excavate: true }} /></div><p className="mt-4 max-w-sm break-all text-sm text-ink/55">{shareUrl}</p><div className="mt-5 grid w-full gap-3 sm:grid-cols-3"><button onClick={copyLink} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-moss px-3 text-sm font-bold text-white hover:brightness-110"><Copy size={16} /> Salin link</button><button onClick={shareWhatsApp} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#198754] px-3 text-sm font-bold text-[#198754] hover:bg-[#eefaf3]"><MessageCircle size={16} /> WhatsApp</button><button onClick={shareInstagram} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-clay px-3 text-sm font-bold text-clay hover:bg-orange-50"><Share2 size={16} /> Instagram</button></div>{shareStatus && <p role="status" className="mt-4 text-sm font-semibold text-ink/65">{shareStatus}</p>}</div></ModalShell>}
   </main>;
+}
+
+function LiveVisitorStats() {
+  const [onlineVisitors, setOnlineVisitors] = useState<number | null>(null);
+  const [totalVisits, setTotalVisits] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!supabaseConfigured()) return;
+    let mounted = true;
+    const supabase = createClient();
+    const channel = supabase.channel("public-microsite-visitors", { config: { presence: { key: getPublicSessionId() } } });
+    const syncPresence = () => {
+      if (mounted) setOnlineVisitors(Object.keys(channel.presenceState()).length);
+    };
+    channel
+      .on("presence", { event: "sync" }, syncPresence)
+      .on("presence", { event: "join" }, syncPresence)
+      .on("presence", { event: "leave" }, syncPresence)
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          const result = await channel.track({ role: "visitor" });
+          if (mounted && result !== "ok") setOnlineVisitors(null);
+          syncPresence();
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          if (mounted) setOnlineVisitors(null);
+        }
+      });
+
+    const loadTotalVisits = async () => {
+      try {
+        const response = await fetch("/api/public/visitor-stats", { cache: "no-store" });
+        if (!response.ok) throw new Error("visitor stats unavailable");
+        const body = await response.json() as { total_visits?: number | null };
+        if (mounted) setTotalVisits(typeof body.total_visits === "number" ? body.total_visits : null);
+      } catch {
+        if (mounted) setTotalVisits(null);
+      }
+    };
+    void loadTotalVisits();
+    const delayedRefresh = window.setTimeout(loadTotalVisits, 1000);
+    const refreshTimer = window.setInterval(loadTotalVisits, 15000);
+    return () => {
+      mounted = false;
+      window.clearTimeout(delayedRefresh);
+      window.clearInterval(refreshTimer);
+      void channel.untrack();
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const formatValue = (value: number | null) => value === null ? "—" : new Intl.NumberFormat("id-ID").format(value);
+  return <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pb-7 text-[11px] text-[var(--footer-text)] sm:gap-x-7 sm:text-xs" aria-live="polite" aria-label="Statistik pengunjung microsite"><span className="inline-flex items-center gap-1.5"><UsersRound size={14} aria-hidden="true" className="text-[var(--primary)]" /><span>Online sekarang</span><span className="font-bold text-[var(--primary)]">{formatValue(onlineVisitors)}</span></span><span className="inline-flex items-center gap-1.5"><Eye size={14} aria-hidden="true" className="text-[var(--primary)]" /><span>Total kunjungan</span><span className="font-bold text-[var(--primary)]">{formatValue(totalVisits)}</span></span></div>;
 }
 
 function BackgroundAnimation({ settings, color }: { settings: MicrositeConfig["settings"]; color: string }) {

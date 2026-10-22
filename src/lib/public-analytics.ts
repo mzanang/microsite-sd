@@ -2,6 +2,7 @@ type PublicEventType = "page_view" | "session_start" | "link_click" | "download"
 type PublicEvent = { eventType: PublicEventType; pagePath: string; pageTitle: string; targetUrl?: string };
 
 const sessionKey = "sdn-analytics-session-id";
+const sessionStartedKey = "sdn-analytics-session-started";
 const visitorKey = "sdn-analytics-visitor-id";
 const visitorExpiryKey = "sdn-analytics-visitor-expires";
 const pageKeyPrefix = "sdn-analytics-page-view:";
@@ -27,6 +28,11 @@ function storedVisitorId() {
   window.localStorage.setItem(visitorKey, created);
   window.localStorage.setItem(visitorExpiryKey, String(Date.now() + 90 * 24 * 60 * 60 * 1000));
   return created;
+}
+
+export function getPublicSessionId() {
+  if (typeof window === "undefined") return "";
+  return storedId(window.sessionStorage, sessionKey);
 }
 
 function deviceCategory() {
@@ -71,6 +77,9 @@ export function trackPublicPageView(pagePath: string, pageTitle: string) {
   const key = `${pageKeyPrefix}${pagePath}`;
   if (window.sessionStorage.getItem(key)) return;
   window.sessionStorage.setItem(key, "1");
-  trackPublicEvent({ eventType: "session_start", pagePath, pageTitle });
+  if (!window.sessionStorage.getItem(sessionStartedKey)) {
+    window.sessionStorage.setItem(sessionStartedKey, "1");
+    trackPublicEvent({ eventType: "session_start", pagePath, pageTitle });
+  }
   trackPublicEvent({ eventType: "page_view", pagePath, pageTitle });
 }
