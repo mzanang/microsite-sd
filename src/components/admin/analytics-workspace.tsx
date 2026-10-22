@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, Download, Eye, Info, MousePointerClick, RefreshCw, Search, TrendingDown, TrendingUp, Users } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Metric = "visits" | "unique_visitors" | "page_views" | "interactions";
 type DateRange = { from: string; to: string };
@@ -38,6 +38,10 @@ function formatNumber(value: number) {
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date(`${value}T00:00:00+07:00`));
+}
+
+function formatTime(value: Date) {
+  return new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Jakarta" }).format(value);
 }
 
 function formatPeriod(value: string) {
@@ -85,27 +89,56 @@ export function AnalyticsWorkspace() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [tablePage, setTablePage] = useState(1);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const requestId = useRef(0);
+  const loadingRequestId = useRef<number | null>(null);
 
-  const load = useCallback(async (nextRange: DateRange) => {
+  const load = useCallback(async (nextRange: DateRange, options: { silent?: boolean } = {}) => {
+    const silent = options.silent ?? false;
     if (nextRange.from > nextRange.to) { setError("Tanggal mulai tidak boleh melebihi tanggal akhir."); return; }
-    setLoading(true);
+    const currentRequestId = requestId.current + 1;
+    requestId.current = currentRequestId;
+    if (!silent) {
+      loadingRequestId.current = currentRequestId;
+      setLoading(true);
+    }
     setError("");
-    setRange(nextRange);
-    setDraftRange(nextRange);
-    setTablePage(1);
+    if (!silent) {
+      setRange(nextRange);
+      setDraftRange(nextRange);
+      setTablePage(1);
+    }
     try {
       const response = await fetch(`/api/admin/analytics?from=${nextRange.from}&to=${nextRange.to}`, { cache: "no-store" });
       const body = await response.json() as AnalyticsResponse & { error?: string };
       if (!response.ok) throw new Error(body.error || "Data analitik belum dapat dimuat.");
+      if (currentRequestId !== requestId.current) return;
       setData({ ...body, current: normaliseSummary(body.current), previous: normaliseSummary(body.previous) });
+      setLastUpdated(new Date());
     } catch (loadError) {
+      if (currentRequestId !== requestId.current) return;
       setError(loadError instanceof Error ? loadError.message : "Data analitik belum dapat dimuat.");
     } finally {
-      setLoading(false);
+      if (loadingRequestId.current === currentRequestId) {
+        loadingRequestId.current = null;
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => { void load(initialRange()); }, [load]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") void load(range, { silent: true });
+    };
+    const interval = window.setInterval(refresh, 10_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [load, range]);
 
   const current = data?.current ?? emptySummary;
   const previous = data?.previous ?? emptySummary;
@@ -153,7 +186,7 @@ export function AnalyticsWorkspace() {
         <div className="min-w-0 flex-1"><label htmlFor="analytics-period" className="mb-2 block text-xs font-bold uppercase tracking-[.14em] text-ink/45">Periode cepat</label><select id="analytics-period" value={period} onChange={(event) => applyQuick(event.target.value)} className="h-11 w-full max-w-xs rounded-xl border border-ink/15 bg-white px-3 text-sm font-semibold outline-none focus:border-[#6048e8] focus:ring-4 focus:ring-[#6048e8]/10"><option value="today">Hari ini</option><option value="yesterday">Kemarin</option><option value="7d">7 hari terakhir</option><option value="30d">30 hari terakhir</option><option value="this-month">Bulan ini</option><option value="last-month">Bulan lalu</option><option value="this-year">Tahun ini</option><option value="custom">Rentang khusus</option></select></div>
         <div className="flex flex-wrap items-end gap-3"><label className="block"><span className="mb-2 block text-xs font-bold text-ink/45">Mulai</span><input type="date" value={draftRange.from} onChange={(event) => { setPeriod("custom"); setDraftRange({ ...draftRange, from: event.target.value }); }} className="h-11 rounded-xl border border-ink/15 px-3 text-sm outline-none focus:border-[#6048e8]" /></label><label className="block"><span className="mb-2 block text-xs font-bold text-ink/45">Akhir</span><input type="date" value={draftRange.to} onChange={(event) => { setPeriod("custom"); setDraftRange({ ...draftRange, to: event.target.value }); }} className="h-11 rounded-xl border border-ink/15 px-3 text-sm outline-none focus:border-[#6048e8]" /></label><button type="button" onClick={() => void load(draftRange)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#6048e8] px-4 text-sm font-bold text-[#6048e8] hover:bg-[#6048e8]/5"><CalendarDays size={16} /> Terapkan</button><button type="button" onClick={() => { const next = initialRange(); setPeriod("7d"); void load(next); }} className="min-h-11 rounded-xl px-3 text-sm font-bold text-ink/55 hover:bg-ink/5">Reset</button></div>
       </div>
-      <p className="mt-4 flex items-center gap-2 text-xs text-ink/45"><Info size={14} /> Data ditampilkan dalam zona waktu Asia/Jakarta · {range.from} sampai {range.to}</p>
+      <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink/45"><Info size={14} /> <span>Data ditampilkan dalam zona waktu Asia/Jakarta · {range.from} sampai {range.to}</span><span className="text-[#6048e8]" aria-live="polite">{lastUpdated ? `Diperbarui otomatis ${formatTime(lastUpdated)}` : "Pembaruan otomatis aktif"}</span></p>
     </section>
 
     {error && <div role="alert" className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"><span>{error}</span><button type="button" onClick={() => void load(range)} className="inline-flex min-h-8 items-center gap-2 rounded-lg px-2 hover:bg-red-100"><RefreshCw size={14} /> Coba lagi</button></div>}
@@ -196,14 +229,16 @@ function MetricCard({ label, value, previous, detail, icon }: { label: string; v
 function TrendChart({ data, metric }: { data: TrendPoint[]; metric: Metric }) {
   if (!data.length) return <EmptyState title="Belum ada data tren" detail="Grafik akan terisi setelah kunjungan publik tercatat." />;
   const width = 900;
-  const height = 260;
-  const padX = 38;
-  const padY = 24;
+  const height = 300;
+  const padX = 54;
+  const padY = 34;
   const values = data.map((point) => Number(point[metric] ?? 0));
   const max = Math.max(1, ...values);
   const points = values.map((value, index) => { const x = padX + (index * (width - padX * 2)) / Math.max(1, values.length - 1); const y = height - padY - (value / max) * (height - padY * 2); return { x, y, value, label: formatPeriod(data[index].bucket) }; });
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-  return <div className="mt-6 overflow-x-auto"><div className="min-w-[36rem]"><svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label={`Grafik ${metricLabels[metric]}`}><g stroke="#e9e7f8" strokeDasharray="3 5">{[0, 1, 2, 3].map((line) => { const y = padY + (line * (height - padY * 2)) / 3; return <line key={line} x1={padX} x2={width - padX} y1={y} y2={y} />; })}</g><path d={path} fill="none" stroke="#6048e8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />{points.map((point) => <g key={`${point.label}-${point.x}`}><circle cx={point.x} cy={point.y} r="6" fill="white" stroke="#6048e8" strokeWidth="3"><title>{`${point.label}: ${formatNumber(point.value)} ${metricLabels[metric].toLowerCase()}`}</title></circle></g>)}<g fill="#7d7891" fontSize="11" textAnchor="middle">{points.filter((_, index) => index === 0 || index === points.length - 1 || index % Math.ceil(points.length / 5) === 0).map((point) => <text key={`label-${point.x}`} x={point.x} y={height - 2}>{point.label}</text>)}</g></svg></div></div>;
+  const baseline = height - padY;
+  const areaPath = `${path} L${points[points.length - 1].x.toFixed(1)} ${baseline} L${points[0].x.toFixed(1)} ${baseline} Z`;
+  return <div className="mt-6 overflow-x-auto"><div className="min-w-[36rem]"><svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label={`Grafik ${metricLabels[metric]}`}><defs><linearGradient id="trend-area-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#6048e8" stopOpacity=".18" /><stop offset="100%" stopColor="#6048e8" stopOpacity="0" /></linearGradient></defs><g stroke="#e9e7f8" strokeDasharray="3 5">{[0, 1, 2, 3].map((line) => { const y = padY + (line * (height - padY * 2)) / 3; return <line key={line} x1={padX} x2={width - padX} y1={y} y2={y} />; })}</g><g fill="#7d7891" fontSize="10" textAnchor="end">{[0, 1, 2, 3].map((line) => { const y = padY + (line * (height - padY * 2)) / 3; const value = Math.round(max * (1 - line / 3)); return <text key={`scale-${line}`} x={padX - 10} y={y + 4}>{formatNumber(value)}</text>; })}</g><path d={areaPath} fill="url(#trend-area-fill)" /><path d={path} fill="none" stroke="#6048e8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4.5" />{points.map((point) => <g key={`${point.label}-${point.x}`}><line x1={point.x} x2={point.x} y1={point.y + 8} y2={baseline} stroke="#6048e8" strokeDasharray="2 6" strokeOpacity=".18" /><circle cx={point.x} cy={point.y} r="7" fill="white" stroke="#6048e8" strokeWidth="3.5"><title>{`${point.label}: ${formatNumber(point.value)} ${metricLabels[metric].toLowerCase()}`}</title></circle><text x={point.x} y={Math.max(18, point.y - 15)} fill="#302276" fontSize="11" fontWeight="700" textAnchor="middle" stroke="white" strokeWidth="4" paintOrder="stroke">{formatNumber(point.value)}</text></g>)}<g fill="#7d7891" fontSize="11" textAnchor="middle">{points.filter((_, index) => index === 0 || index === points.length - 1 || index % Math.ceil(points.length / 5) === 0).map((point) => <text key={`label-${point.x}`} x={point.x} y={height - 4}>{point.label}</text>)}</g></svg></div></div>;
 }
 
 function InsightPanel({ current, previous }: { current: Summary; previous: Summary }) {
