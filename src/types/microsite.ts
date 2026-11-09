@@ -1,4 +1,4 @@
-export type ComponentType = "service_links" | "location" | "contact" | "link" | "text" | "image" | "embed" | "divider" | "whatsapp" | "email" | "instagram" | "phone";
+export type ComponentType = "service_links" | "location" | "contact" | "link" | "text" | "image" | "embed" | "divider" | "whatsapp" | "email" | "instagram" | "phone" | "internal_route";
 
 export type SocialContact = {
   id: string;

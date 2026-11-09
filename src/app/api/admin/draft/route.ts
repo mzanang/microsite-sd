@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const { error: fixedError } = await supabase.from("microsite_components").update(fixedUpdate).eq("id", component.id).eq("microsite_id", site.id);
     if (fixedError) return NextResponse.json({ error: "Gagal menyimpan urutan komponen." }, { status: 500 });
   }
-  const contentTypes = ["link", "text", "image", "embed", "divider", "whatsapp", "email", "instagram", "phone"];
+  const contentTypes = ["link", "text", "image", "embed", "divider", "whatsapp", "email", "instagram", "phone", "internal_route"];
   const { error: deleteError } = await supabase.from("microsite_components").delete().eq("microsite_id", site.id).in("component_type", contentTypes);
   if (deleteError) return NextResponse.json({ error: "Gagal memperbarui konten draf." }, { status: 500 });
   const contentRows = parsed.data.components.filter((component) => contentTypes.includes(component.type)).map((component) => ({ id: component.id, microsite_id: site.id, component_type: component.type, title: component.title, config: component.config ?? {}, published_config: {}, sort_order: component.sort_order, is_enabled: component.is_enabled, is_published: false, updated_at: now }));

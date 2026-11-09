@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import { ArrowUpRight, Check, Copy, ExternalLink, Eye, MapPin, MessageCircle, Moon, Share2, Sun, UsersRound, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -8,7 +9,7 @@ import { createClient, supabaseConfigured } from "@/lib/supabase/client";
 import type { MicrositeConfig } from "@/types/microsite";
 import { AppIcon, ServiceIcon } from "@/components/microsite/icon";
 import { PublicSplash } from "@/components/public/public-splash";
-import { isSafeUrl } from "@/lib/utils";
+import { isSafeInternalRoute, isSafeUrl } from "@/lib/utils";
 import { getPublicSessionId, trackPublicEvent, trackPublicPageView } from "@/lib/public-analytics";
 
 type Modal = "verified" | "share" | null;
@@ -404,6 +405,12 @@ function PublicComponent({ component, config, services, contacts, radius, card, 
   const iconShape = settings.icon_shape === "circle" || settings.icon_shape === "pill" ? "rounded-full" : settings.icon_shape === "square" ? "rounded-md" : settings.icon_shape === "none" ? "rounded-none" : settings.icon_shape === "bubble" ? "rounded-[2rem]" : settings.icon_shape === "organic" ? "icon-shape-organic" : settings.icon_shape === "diamond" ? "icon-shape-diamond" : settings.icon_shape === "hexagon" ? "icon-shape-hexagon" : settings.icon_shape === "squircle" ? "icon-shape-squircle" : "rounded-xl";
   const iconFrameClass = `${iconBackground === "card" ? "border shadow-sm" : "border-transparent bg-transparent"} ${iconShape}`;
   const iconFrameStyle = { backgroundColor: iconBackground === "card" ? `color-mix(in srgb, ${iconColor} 12%, var(--card-bg))` : "transparent", borderColor: iconBackground === "card" ? `color-mix(in srgb, ${iconColor} 24%, var(--card-border))` : "transparent", color: iconColor };
+  if (component.type === "internal_route") {
+    const route = String(component.config?.href ?? "");
+    if (!isSafeInternalRoute(route)) return null;
+    const description = String(component.config?.body ?? "");
+    return <section aria-labelledby={`${component.id}-title`}><Link href={route} className={`group flex min-h-[84px] min-w-0 items-center gap-4 border p-4 transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${buttonStyleClass(settings)} ${radius} ${card}`}><span className={`flex h-12 w-12 shrink-0 items-center justify-center ${iconFrameClass}`} style={iconFrameStyle}><AppIcon name={String(component.config?.icon ?? "users")} size={iconSizeValue(settings.icon_size)} /></span><span className="min-w-0 flex-1"><span id={`${component.id}-title`} className={`block ${titleText}`} style={buttonTitleStyle(settings)}>{component.title}</span>{description && <span className={`mt-1 block leading-5 ${bodyText}`}>{description}</span>}</span><ArrowUpRight size={19} className="shrink-0 text-[var(--card-muted)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></Link></section>;
+  }
   if (component.type === "service_links") return <ServiceLinksSection component={component} settings={settings} services={services} radius={radius} card={card} titleText={titleText} bodyText={bodyText} linkSpacingClass={linkSpacingClass} iconFrameClass={iconFrameClass} iconFrameStyle={iconFrameStyle} />;
   if (component.type === "location") {
     const locationValues = component.config ?? {};

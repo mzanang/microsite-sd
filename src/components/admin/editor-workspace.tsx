@@ -4,11 +4,11 @@ import Image from "next/image";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, ChevronDown, FileImage, GripVertical, ImagePlus, Instagram, Link2, Mail, Minus, Pencil, Phone, Plus, Save, Trash2, Type, X } from "lucide-react";
+import { Check, ChevronDown, FileImage, GripVertical, ImagePlus, Instagram, Link2, Mail, Minus, Pencil, Phone, Plus, Route, Save, Trash2, Type, X } from "lucide-react";
 import { useEffect, useRef, useState, type FC } from "react";
 import type { ComponentType, MicrositeConfig, ServiceLink } from "@/types/microsite";
 import { AppIcon, ServiceIcon } from "@/components/microsite/icon";
-import { cn } from "@/lib/utils";
+import { cn, isSafeInternalRoute } from "@/lib/utils";
 import { PublicMicrosite } from "@/components/microsite/public-microsite";
 import { QuickPublishButton } from "@/components/admin/quick-publish-button";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -35,6 +35,7 @@ const contentOptions: Array<{ type: "service_link" | ComponentType; label: strin
   { type: "email", label: "Email", description: "Tombol untuk mengirim email sekolah.", icon: Mail },
   { type: "instagram", label: "Instagram", description: "Tautkan profil Instagram sekolah.", icon: Instagram },
   { type: "phone", label: "Phone", description: "Tombol panggilan telepon.", icon: Phone },
+  { type: "internal_route", label: "Halaman internal", description: "Arahkan pengunjung ke route Next.js di dalam microsite.", icon: Route },
 ];
 
 export function EditorWorkspace({ initialConfig }: { initialConfig: MicrositeConfig }) {
@@ -48,7 +49,7 @@ export function EditorWorkspace({ initialConfig }: { initialConfig: MicrositeCon
   const newId = () => typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `content-${Date.now()}`;
 
   function openNewService() { setChooserOpen(false); setEditingService({ id: newId(), title: "", description: "", href: "https://", icon: "globe", icon_type: "icon", is_enabled: true, sort_order: config.services.length + 1 }); }
-  function openNewContent(type: ComponentType) { setChooserOpen(false); if (fixedTypes.includes(type)) return; setEditingContent({ id: newId(), type, title: type === "divider" ? "Pemisah" : "Komponen baru", is_enabled: true, sort_order: config.components.length + 1, config: defaultContentConfig(type) }); }
+  function openNewContent(type: ComponentType) { setChooserOpen(false); if (fixedTypes.includes(type)) return; setEditingContent({ id: newId(), type, title: type === "divider" ? "Pemisah" : type === "internal_route" ? "Komunitas Belajar Guru" : "Komponen baru", is_enabled: true, sort_order: config.components.length + 1, config: defaultContentConfig(type) }); }
   function dragServiceEnd(event: DragEndEvent) { const { active, over } = event; if (!over || active.id === over.id) return; setConfig((current) => ({ ...current, services: arrayMove(current.services, current.services.findIndex((item) => item.id === active.id), current.services.findIndex((item) => item.id === over.id)).map((item, index) => ({ ...item, sort_order: index + 1 })) })); setSaved(""); }
   function dragComponentEnd(event: DragEndEvent) { const { active, over } = event; if (!over || active.id === over.id) return; setConfig((current) => { const ordered = [...current.components].sort((a, b) => a.sort_order - b.sort_order); const moved = arrayMove(ordered, ordered.findIndex((item) => item.id === active.id), ordered.findIndex((item) => item.id === over.id)); return { ...current, components: moved.map((item, index) => ({ ...item, sort_order: index + 1 })) }; }); setSaved(""); }
 function saveService(service: ServiceLink) { setConfig((current) => ({ ...current, services: current.services.some((item) => item.id === service.id) ? current.services.map((item) => item.id === service.id ? service : item) : [...current.services, service] })); setEditingService(null); setSaved(""); notifyAdmin("Komponen link berhasil disimpan di draf.", "success"); }
@@ -62,7 +63,7 @@ function saveService(service: ServiceLink) { setConfig((current) => ({ ...curren
     <aside className="min-w-0 rounded-[1.5rem] border border-ink/10 bg-ink p-4 text-white sm:p-5 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col xl:overflow-hidden"><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-white/50">Pratinjau langsung</p><h2 className="mt-2 font-display text-2xl">Perubahan tampil di sini</h2></div><span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-white/65">DRAF</span></div><div className="mt-5 flex min-h-9 items-center justify-center rounded-xl bg-white/10 px-3 text-[11px] font-bold text-white/80">Desktop</div><div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-2xl pr-2"><div className="mx-auto max-w-full rounded-2xl bg-paper text-ink"><PublicMicrosite config={config} realtime={false} /></div></div><p className="mt-5 text-xs leading-5 text-white/50">Pratinjau menggunakan renderer halaman publik yang sama dan mengikuti perubahan draft.</p></aside></div>;
 }
 
-function componentLabel(component: MicrositeConfig["components"][number]) { if (component.type === "service_links") return "Komponen / Link"; if (component.type === "location") return "Peta lokasi"; if (component.type === "contact") return component.title === "Terhubung" ? "Terhubung bersama kami" : component.title; return component.title; }
+function componentLabel(component: MicrositeConfig["components"][number]) { if (component.type === "service_links") return "Komponen / Link"; if (component.type === "location") return "Peta lokasi"; if (component.type === "contact") return component.title === "Terhubung" ? "Terhubung bersama kami" : component.title; if (component.type === "internal_route") return `Halaman internal: ${component.title}`; return component.title; }
 function SortableLayoutRow({ component, onEdit, onDelete, onToggle }: { component: MicrositeConfig["components"][number]; onEdit: () => void; onDelete: () => void; onToggle: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: component.id });
   const fixed = fixedTypes.includes(component.type);
@@ -131,10 +132,11 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
     notifyAdmin("Gambar komponen berhasil dihapus.", "success");
   }
 
-  const needsUrl = ["link", "whatsapp", "email", "instagram", "phone"].includes(draft.type);
+  const needsUrl = ["link", "whatsapp", "email", "instagram", "phone", "internal_route"].includes(draft.type);
 
   function save() {
     if (draft.type === "image" && !isSafeImageUrl(preview)) { setMessage("Pilih file gambar terlebih dahulu."); return; }
+    if (draft.type === "internal_route" && !isSafeInternalRoute(String(values.href ?? "").trim())) { setMessage("Isi route internal yang valid, contoh: /komunitas-belajar."); return; }
     onSave(draft.type === "location" ? { ...draft, config: { ...(draft.config ?? {}), map_title: draft.title } } : draft);
   }
 
@@ -209,7 +211,8 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
           </div>
         </>}
 
-        {needsUrl && <Field label="URL tujuan" value={String(values.href ?? "")} onChange={(value) => update("href", value)} placeholder={draft.type === "email" ? "mailto:admin@sekolah.id" : draft.type === "phone" ? "tel:+622836196366" : "https://..."} />}
+        {draft.type === "internal_route" && <div className="rounded-xl bg-mist p-4"><p className="mb-3 text-xs font-bold text-ink/55">Ikon Lucide</p><div className="grid grid-cols-6 gap-2 sm:grid-cols-9">{iconOptions.map((name) => <button key={name} type="button" onClick={() => update("icon", name)} className={cn("flex h-10 items-center justify-center rounded-lg border", String(values.icon ?? "users") === name ? "border-moss bg-moss/10 text-moss" : "border-ink/10 text-ink/45")} aria-label={`Pilih ikon ${name}`}><AppIcon name={name} size={17} /></button>)}</div></div>}
+        {needsUrl && <Field label={draft.type === "internal_route" ? "URL route internal" : "URL tujuan"} value={String(values.href ?? "")} onChange={(value) => update("href", value)} placeholder={draft.type === "internal_route" ? "/komunitas-belajar" : draft.type === "email" ? "mailto:admin@sekolah.id" : draft.type === "phone" ? "tel:+622836196366" : "https://..."} />}
         {needsUrl && <TextArea label="Deskripsi singkat" value={String(values.body ?? "")} onChange={(value) => update("body", value)} />}
         {needsUrl && <div className="grid gap-4 rounded-xl bg-mist p-4 sm:grid-cols-2">
           <SelectField label="Efek animasi tombol" value={String(values.button_effect ?? "inherit")} onChange={(value) => update("button_effect", value)} options={buttonEffectOptions} />
@@ -225,7 +228,7 @@ function ContentEditorModal({ initial, onClose, onSave }: { initial: MicrositeCo
     </div>
   </div>;
 }
-function defaultContentConfig(type: ComponentType) { if (type === "text") return { body: "Tulis informasi di sini.", with_card: true }; if (type === "image") return { image_url: "", image_path: "", alt: "" }; if (type === "embed") return { embed_url: "", autoplay: true, autoplay_audio: false }; if (type === "divider") return { style: "solid", height: 1, color: "#D9E1D9", spacing: "comfortable" }; if (type === "whatsapp") return { href: "https://wa.me/", body: "Hubungi admin sekolah" }; if (type === "email") return { href: "mailto:" }; if (type === "instagram") return { href: "https://instagram.com/" }; if (type === "phone") return { href: "tel:" }; return { href: "https://", body: "" }; }
+function defaultContentConfig(type: ComponentType) { if (type === "text") return { body: "Tulis informasi di sini.", with_card: true }; if (type === "image") return { image_url: "", image_path: "", alt: "" }; if (type === "embed") return { embed_url: "", autoplay: true, autoplay_audio: false }; if (type === "divider") return { style: "solid", height: 1, color: "#D9E1D9", spacing: "comfortable" }; if (type === "internal_route") return { href: "/komunitas-belajar", body: "Portal administrasi dan kegiatan komunitas belajar guru.", icon: "users" }; if (type === "whatsapp") return { href: "https://wa.me/", body: "Hubungi admin sekolah" }; if (type === "email") return { href: "mailto:" }; if (type === "instagram") return { href: "https://instagram.com/" }; if (type === "phone") return { href: "tel:" }; return { href: "https://", body: "" }; }
 function storagePathFromUrl(value: string) { const marker = "/storage/v1/object/public/microsite-media/"; return value.includes(marker) ? decodeURIComponent(value.split(marker)[1]) : ""; }
 async function deleteStorageAsset(path: string) { return fetch("/api/admin/media", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ path }) }); }
 function notifyAdmin(message: string, tone: "success" | "error") { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("admin-toast", { detail: { message, tone } })); }
