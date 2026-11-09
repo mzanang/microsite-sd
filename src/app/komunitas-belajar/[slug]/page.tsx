@@ -8,6 +8,9 @@ const pages = {
   "daftar-hadir-notulen": { title: "Daftar Hadir dan Notulen", description: "Daftar hadir serta catatan kegiatan Komunitas Belajar Guru.", kind: "document" as const },
   "upload-tugas-kombel": { title: "Upload Tugas Kombel", description: "Kirim tugas atau administrasi kegiatan komunitas melalui akun yang telah dibuat oleh Super Admin.", kind: "upload" as const },
   "dokumentasi-kegiatan": { title: "Dokumentasi Kegiatan", description: "Dokumentasi kegiatan Komunitas Belajar Guru SD Negeri Dukuhwaru 01.", kind: "document" as const },
+  "praktik-baik-guru": { title: "Praktik Baik Guru", description: "Ruang berbagi strategi dan pengalaman pembelajaran dari komunitas guru.", kind: "document" as const },
+  "forum-diskusi-guru": { title: "Forum Diskusi Guru", description: "Ruang bertukar pengalaman dan gagasan untuk mendukung pembelajaran di sekolah.", kind: "document" as const },
+  "peningkatan-rapor-pendidikan": { title: "Peningkatan Rapor Pendidikan", description: "Informasi refleksi dan tindak lanjut peningkatan mutu pendidikan sekolah.", kind: "document" as const },
 } as const;
 
 type PageProps = { params: Promise<{ slug: string }> };
