@@ -9,9 +9,9 @@ import {
   School,
   Upload,
   UserRound,
-  UsersRound,
 } from "lucide-react";
 import { CommunityNav } from "@/components/community/community-nav";
+import { CommunityHero } from "@/components/community/community-hero";
 import type { PublicCommunityData, PublicCommunityProfile } from "@/lib/community-data";
 import { schoolProfileLeft, schoolProfileRight } from "@/lib/community-school-profile";
 
@@ -28,15 +28,10 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
     <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(145deg,#f5e7e9_0%,#eef5ff_100%)] text-[#27374c]">
       <CommunityNav schoolName={data.school.name} logoUrl={data.school.logo_url} />
 
-      <div id="beranda" className="mx-auto w-full max-w-3xl px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
-        <section className="text-center" aria-labelledby="community-title">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1264c5] text-white shadow-[0_10px_24px_rgba(18,100,197,.2)]">
-            <UsersRound size={27} aria-hidden="true" />
-          </div>
-          <p className="mt-6 text-xs font-bold uppercase tracking-[.2em] text-[#1264c5]">Portal komunitas guru</p>
-          <h1 id="community-title" className="mt-3 text-4xl font-extrabold tracking-[-.04em] text-[#173253] sm:text-5xl">Komunitas Belajar Guru</h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#5d718a] sm:text-base">Ruang informasi dan kegiatan Komunitas Belajar Guru {data.school.name}.</p>
-        </section>
+      <div id="beranda" className="mx-auto w-full max-w-6xl px-5 pb-16 pt-8 sm:px-8 sm:pt-12">
+        <CommunityHero schoolName={data.school.name} />
+
+        <div className="mx-auto max-w-3xl">
 
         <section className="mt-10" aria-labelledby="public-content-title">
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -95,6 +90,7 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
           <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#1264c5]">Tenaga pendidik</p><h2 id="teachers-title" className="mt-2 text-2xl font-extrabold tracking-tight text-[#173253]">Daftar guru</h2></div><p className="text-sm font-semibold text-[#71849b]">{data.teachers.length ? `${data.teachers.length} profil publik` : "Belum ada profil publik"}</p></div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">{data.teachers.length ? data.teachers.map((teacher) => <ProfileCard key={`${teacher.name}-${teacher.teacher_type}`} profile={teacher} />) : <EmptyState title="Daftar guru belum ditambahkan" description="Nama dan jenis guru akan tampil setelah Super Admin mengaktifkan profil publiknya." />}</div>
         </section>
+      </div>
       </div>
 
       <footer className="border-t border-[#d7e1ec] bg-white/70"><div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-5 py-7 text-sm text-[#6c7f98] sm:flex-row sm:items-center sm:justify-between sm:px-8"><span className="font-semibold">{data.school.name}</span><span>Komunitas Belajar Guru</span></div></footer>
