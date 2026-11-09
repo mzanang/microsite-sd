@@ -24,12 +24,20 @@ const createUserSchema = z.object({
   is_public: z.boolean().optional().default(false),
 });
 
+function communityDatabaseError(error: { code?: string; message?: string }) {
+  const code = String(error.code ?? "");
+  const message = String(error.message ?? "").toLowerCase();
+  if (["42P01", "PGRST205"].includes(code) || message.includes("kb_profiles")) return "Database Komunitas Belajar belum siap. Terapkan migrasi 202611090001_public_community_core.sql dan 202611090003_kb_operational_schema.sql terlebih dahulu.";
+  if (code === "42703") return "Struktur database Komunitas Belajar belum lengkap. Terapkan ulang migrasi komunitas yang tersedia.";
+  return "Profil pengguna gagal disimpan.";
+}
+
 export async function GET() {
   if (!(await canManageCommunityUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
 
   const admin = createKbAdminClient();
   const { data, error } = await admin.from("kb_profiles").select("id, full_name, login_identifier, role, teacher_type, public_title, is_active, is_public, must_change_password, created_at").order("full_name", { ascending: true });
-  if (error) return NextResponse.json({ error: "Daftar pengguna gagal dimuat." }, { status: 500 });
+  if (error) return NextResponse.json({ error: communityDatabaseError(error) }, { status: 503 });
   return NextResponse.json({ users: data ?? [] });
 }
 
@@ -45,7 +53,8 @@ export async function POST(request: Request) {
 
   try {
     const admin = createKbAdminClient();
-    const { data: existing } = await admin.from("kb_profiles").select("id").eq("login_identifier", identifier).maybeSingle();
+    const { data: existing, error: lookupError } = await admin.from("kb_profiles").select("id").eq("login_identifier", identifier).maybeSingle();
+    if (lookupError) return NextResponse.json({ error: communityDatabaseError(lookupError) }, { status: 503 });
     if (existing) return NextResponse.json({ error: "NIP atau NIK sudah terdaftar." }, { status: 409 });
 
     const internalEmail = `${crypto.randomUUID()}@kb.internal`;
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
     if (profileError) {
       await admin.auth.admin.deleteUser(authData.user.id);
       if (profileError.code === "23505") return NextResponse.json({ error: "NIP atau NIK sudah terdaftar." }, { status: 409 });
-      return NextResponse.json({ error: "Profil pengguna gagal disimpan." }, { status: 500 });
+      return NextResponse.json({ error: communityDatabaseError(profileError) }, { status: profileError.code === "PGRST205" || profileError.code === "42P01" || profileError.code === "42703" ? 503 : 500 });
     }
 
     return NextResponse.json({ ok: true });
