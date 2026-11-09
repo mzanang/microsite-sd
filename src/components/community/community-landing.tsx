@@ -25,19 +25,15 @@ const publicCards = [
 
 export function CommunityLanding({ data }: { data: PublicCommunityData }) {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(145deg,#f5e7e9_0%,#eef5ff_100%)] text-[#27374c]">
+    <main className="min-h-screen overflow-x-hidden bg-[#f7f9fb] font-[var(--font-plus-jakarta)] text-[#191c1e]">
       <CommunityNav schoolName={data.school.name} logoUrl={data.school.logo_url} />
 
       <div id="beranda" className="mx-auto w-full max-w-6xl px-5 pb-16 pt-8 sm:px-8 sm:pt-12">
         <CommunityHero schoolName={data.school.name} />
 
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-6xl">
 
-        <section className="mt-10" aria-labelledby="public-content-title">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 id="public-content-title" className="text-sm font-extrabold uppercase tracking-[.14em] text-[#526b87]">Informasi komunitas</h2>
-            <span className="text-xs font-semibold text-[#7b8da3]">Bisa dibuka tanpa login</span>
-          </div>
+        <section className="mt-14" aria-label="Ruang publik komunitas belajar">
           <div className="space-y-4">
             {publicCards.map(({ slug, label, icon: Icon }) => (
               <Link key={slug} href={`/komunitas-belajar/${slug}`} className="group flex min-h-20 items-center gap-4 rounded-2xl border border-white/80 bg-white px-3 py-3 shadow-[0_10px_25px_rgba(43,55,75,.1)] transition hover:-translate-y-0.5 hover:border-[#b8d2ee] hover:shadow-[0_14px_30px_rgba(43,55,75,.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1264c5] sm:gap-5 sm:px-4">
@@ -93,7 +89,7 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
       </div>
       </div>
 
-      <footer className="border-t border-[#d7e1ec] bg-white/70"><div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-5 py-7 text-sm text-[#6c7f98] sm:flex-row sm:items-center sm:justify-between sm:px-8"><span className="font-semibold">{data.school.name}</span><span>Komunitas Belajar Guru</span></div></footer>
+      <footer className="border-t border-[#e2e8f0] bg-white"><div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-5 py-7 text-sm text-[#64748b] sm:flex-row sm:items-center sm:justify-between sm:px-8"><span className="font-semibold">{data.school.name}</span><span>Komunitas Belajar Guru</span></div></footer>
     </main>
   );
 }
