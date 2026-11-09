@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { ArrowLeft, ChevronRight, FileQuestion, UsersRound } from "lucide-react";
+import { getPublicCommunityData } from "@/lib/community-data";
+
+export type CommunityPublicPageKind = "document" | "upload";
+
+type CommunityPublicPageProps = { title: string; description: string; kind?: CommunityPublicPageKind };
+
+export async function CommunityPublicPage({ title, description, kind = "document" }: CommunityPublicPageProps) {
+  const data = await getPublicCommunityData();
+  const isUpload = kind === "upload";
+
+  return <main className="min-h-screen bg-[linear-gradient(145deg,#f5e7e9_0%,#eef5ff_100%)] px-5 py-8 text-[#27374c] sm:px-8 sm:py-12"><div className="mx-auto max-w-3xl"><Link href="/komunitas-belajar" className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-bold text-[#1264c5] hover:bg-white/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1264c5]"><ArrowLeft size={17} aria-hidden="true" /> Kembali ke komunitas</Link><header className="mt-8 rounded-3xl bg-[#1264c5] p-7 text-white shadow-[0_18px_45px_rgba(18,100,197,.2)] sm:p-10"><div className="flex items-center gap-3 text-[#d8eaff]"><UsersRound size={19} aria-hidden="true" /><span className="text-xs font-bold uppercase tracking-[.18em]">{data.school.name}</span></div><h1 className="mt-6 max-w-2xl text-3xl font-extrabold tracking-[-.03em] sm:text-5xl">{title}</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-white/80 sm:text-base">{description}</p></header><section className="mt-6 rounded-2xl border border-white/80 bg-white p-6 shadow-[0_12px_28px_rgba(43,55,75,.08)] sm:p-8" aria-labelledby="content-status-title"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e9f3ff] text-[#1264c5]"><FileQuestion size={23} aria-hidden="true" /></div><h2 id="content-status-title" className="mt-5 text-xl font-extrabold text-[#173f70]">Konten belum tersedia</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-[#5d718a]">Halaman ini sudah tersedia untuk publik. Konten akan tampil setelah pengelola menambahkannya melalui modul Komunitas Belajar Guru.</p>{isUpload && <div className="mt-6 rounded-xl border border-[#c8dcf4] bg-[#e9f3ff] p-5"><p className="text-sm font-bold text-[#173f70]">Ingin mengunggah tugas?</p><p className="mt-1 text-sm leading-6 text-[#5d718a]">Masuk menggunakan NIP atau NIK yang diberikan oleh Super Admin.</p><Link href="/komunitas-belajar/login" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#1264c5] px-4 text-sm font-bold text-white hover:bg-[#0d4e9b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1264c5]">Masuk untuk mengunggah <ChevronRight size={17} aria-hidden="true" /></Link></div>}</section></div></main>;
+}

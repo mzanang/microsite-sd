@@ -1,0 +1,26 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { CommunityPublicPage } from "@/components/community/community-public-page";
+
+const pages = {
+  "sk-komunitas-belajar": { title: "SK Komunitas Belajar", description: "Dokumen dan informasi keputusan pembentukan Komunitas Belajar Guru.", kind: "document" as const },
+  "materi-kegiatan": { title: "Materi Kegiatan", description: "Materi pembelajaran dan bahan kegiatan Komunitas Belajar Guru.", kind: "document" as const },
+  "daftar-hadir-notulen": { title: "Daftar Hadir dan Notulen", description: "Daftar hadir serta catatan kegiatan Komunitas Belajar Guru.", kind: "document" as const },
+  "upload-tugas-kombel": { title: "Upload Tugas Kombel", description: "Kirim tugas atau administrasi kegiatan komunitas melalui akun yang telah dibuat oleh Super Admin.", kind: "upload" as const },
+  "dokumentasi-kegiatan": { title: "Dokumentasi Kegiatan", description: "Dokumentasi kegiatan Komunitas Belajar Guru SD Negeri Dukuhwaru 01.", kind: "document" as const },
+} as const;
+
+type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const page = pages[slug as keyof typeof pages];
+  return { title: page?.title ?? "Komunitas Belajar Guru" };
+}
+
+export default async function CommunityPublicSubpage({ params }: PageProps) {
+  const { slug } = await params;
+  const page = pages[slug as keyof typeof pages];
+  if (!page) notFound();
+  return <CommunityPublicPage title={page.title} description={page.description} kind={page.kind} />;
+}

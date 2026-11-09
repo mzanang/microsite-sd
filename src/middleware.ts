@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const protectedAdminPath = request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login");
-  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard");
+  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard") || request.nextUrl.pathname.startsWith("/komunitas-belajar/pengguna");
 
   if (protectedAdminPath && !user) return NextResponse.redirect(new URL("/admin/login", request.url));
   if (protectedAdminPath && user) {
@@ -37,4 +37,4 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/komunitas-belajar/dashboard/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/komunitas-belajar/dashboard/:path*", "/komunitas-belajar/pengguna/:path*"] };
