@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { BookOpen, ChevronRight, MapPin, School, UserRound, UsersRound } from "lucide-react";
 import type { PublicCommunityData, PublicCommunityProfile } from "@/lib/community-data";
 
@@ -10,10 +11,11 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
           <Image src={data.school.logo_url} alt="" width={42} height={42} className="h-10 w-10 shrink-0 object-contain" unoptimized />
           <span className="min-w-0"><span className="block truncate text-sm font-extrabold tracking-tight text-[#153d70]">{data.school.name}</span><span className="block text-[10px] font-bold uppercase tracking-[.16em] text-[#6683a6]">Komunitas Belajar Guru</span></span>
         </a>
-        <nav aria-label="Navigasi halaman" className="hidden items-center gap-1 text-sm font-semibold text-[#557291] md:flex">
-          <a href="#profil-sekolah" className="rounded-lg px-3 py-2 hover:bg-[#edf4ff] hover:text-[#155bb5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#155bb5]">Profil sekolah</a>
+        <nav aria-label="Navigasi halaman" className="flex items-center gap-1 text-sm font-semibold text-[#557291]">
+          <div className="hidden items-center gap-1 md:flex"><a href="#profil-sekolah" className="rounded-lg px-3 py-2 hover:bg-[#edf4ff] hover:text-[#155bb5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#155bb5]">Profil sekolah</a>
           <a href="#kepala-sekolah" className="rounded-lg px-3 py-2 hover:bg-[#edf4ff] hover:text-[#155bb5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#155bb5]">Kepala sekolah</a>
-          <a href="#guru" className="rounded-lg px-3 py-2 hover:bg-[#edf4ff] hover:text-[#155bb5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#155bb5]">Daftar guru</a>
+          <a href="#guru" className="rounded-lg px-3 py-2 hover:bg-[#edf4ff] hover:text-[#155bb5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#155bb5]">Daftar guru</a></div>
+          <Link href="/komunitas-belajar/login" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0b5fc3] px-4 text-sm font-bold text-white transition hover:bg-[#084e9f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0b5fc3]">Masuk</Link>
         </nav>
       </div>
     </header>
