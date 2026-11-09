@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     console.error("Microsite draft content delete failed", deleteError);
     return NextResponse.json({ error: "Gagal memperbarui konten draf." }, { status: 500 });
   }
-  const contentRows = parsed.data.components.filter((component) => contentTypes.includes(component.type)).map((component) => ({ id: component.id, microsite_id: site.id, component_type: component.type, title: component.title, config: component.config ?? {}, published_config: {}, sort_order: component.sort_order, is_enabled: component.is_enabled, is_published: false, updated_at: now }));
+  const contentRows = parsed.data.components.filter((component) => contentTypes.includes(component.type)).map((component) => ({ id: isUuid(component.id) ? component.id : crypto.randomUUID(), microsite_id: site.id, component_type: component.type, title: component.title, config: component.config ?? {}, published_config: {}, sort_order: component.sort_order, is_enabled: component.is_enabled, is_published: false, updated_at: now }));
   if (contentRows.length) {
     const { error: contentError } = await supabase.from("microsite_components").insert(contentRows);
     if (contentError) {
@@ -44,4 +44,8 @@ export async function POST(request: Request) {
     }
   }
   return NextResponse.json({ ok: true });
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
