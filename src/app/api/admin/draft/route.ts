@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { micrositeDraftSchema } from "@/lib/validations";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import { isSafeInternalRoute } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const parsed = micrositeDraftSchema.safeParse(await request.json());
@@ -24,12 +25,23 @@ export async function POST(request: Request) {
     if (fixedError) return NextResponse.json({ error: "Gagal menyimpan urutan komponen." }, { status: 500 });
   }
   const contentTypes = ["link", "text", "image", "embed", "divider", "whatsapp", "email", "instagram", "phone", "internal_route"];
+  const invalidInternalRoute = parsed.data.components.find((component) => component.type === "internal_route" && !isSafeInternalRoute(String(component.config?.href ?? "").trim()));
+  if (invalidInternalRoute) return NextResponse.json({ error: "Route internal tidak valid. Gunakan path lokal seperti /komunitas-belajar." }, { status: 400 });
   const { error: deleteError } = await supabase.from("microsite_components").delete().eq("microsite_id", site.id).in("component_type", contentTypes);
-  if (deleteError) return NextResponse.json({ error: "Gagal memperbarui konten draf." }, { status: 500 });
+  if (deleteError) {
+    console.error("Microsite draft content delete failed", deleteError);
+    return NextResponse.json({ error: "Gagal memperbarui konten draf." }, { status: 500 });
+  }
   const contentRows = parsed.data.components.filter((component) => contentTypes.includes(component.type)).map((component) => ({ id: component.id, microsite_id: site.id, component_type: component.type, title: component.title, config: component.config ?? {}, published_config: {}, sort_order: component.sort_order, is_enabled: component.is_enabled, is_published: false, updated_at: now }));
   if (contentRows.length) {
     const { error: contentError } = await supabase.from("microsite_components").insert(contentRows);
-    if (contentError) return NextResponse.json({ error: "Gagal menyimpan konten draf." }, { status: 500 });
+    if (contentError) {
+      console.error("Microsite draft content insert failed", contentError);
+      if (contentRows.some((row) => row.component_type === "internal_route") && contentError.code === "23514") {
+        return NextResponse.json({ error: "Database belum mengenali komponen route internal. Terapkan migrasi 202611090002_internal_route_component.sql terlebih dahulu." }, { status: 500 });
+      }
+      return NextResponse.json({ error: "Gagal menyimpan konten draf." }, { status: 500 });
+    }
   }
   return NextResponse.json({ ok: true });
 }

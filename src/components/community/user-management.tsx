@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type UserRole = "kepala_sekolah" | "guru" | "pengawas_dabin";
 type User = { id: string; full_name: string; login_identifier: string | null; role: UserRole | "super_admin"; teacher_type: string | null; public_title: string | null; is_active: boolean; is_public: boolean; must_change_password: boolean; created_at: string };
@@ -12,6 +12,16 @@ export function UserManagement({ initialUsers }: { initialUsers: User[] }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (users.length) return;
+    let active = true;
+    fetch("/api/komunitas-belajar/users", { cache: "no-store" })
+      .then(async (response) => ({ ok: response.ok, body: await response.json().catch(() => ({})) as { users?: User[] } }))
+      .then(({ ok, body }) => { if (active && ok && body.users) setUsers(body.users); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [users.length]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
