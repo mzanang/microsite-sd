@@ -18,6 +18,8 @@ export type PublicCommunityData = {
   teachers: PublicCommunityProfile[];
 };
 
+export type PublicCommunityDocument = { id: string; title: string; description: string; original_name: string; public_url: string; created_at: string };
+
 const fallbackData: PublicCommunityData = {
   school: {
     name: defaultConfig.microsite.title,
@@ -68,5 +70,17 @@ export async function getPublicCommunityData(): Promise<PublicCommunityData> {
     return parseOverview(data) ?? fallbackData;
   } catch {
     return fallbackData;
+  }
+}
+
+export async function getPublicCommunityDocuments(): Promise<PublicCommunityDocument[]> {
+  if (!supabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.from("kb_public_documents").select("id, title, description, original_name, storage_path, created_at").eq("is_published", true).order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+    if (error || !data) return [];
+    return data.map((item) => ({ id: item.id, title: item.title, description: item.description, original_name: item.original_name, public_url: supabase.storage.from("kb-public-documents").getPublicUrl(item.storage_path).data.publicUrl, created_at: item.created_at }));
+  } catch {
+    return [];
   }
 }

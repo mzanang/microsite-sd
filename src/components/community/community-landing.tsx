@@ -7,7 +7,6 @@ import {
   Camera,
   CheckSquare,
   ChevronRight,
-  FileBarChart,
   FileText,
   MapPin,
   Search,
@@ -33,7 +32,6 @@ const rooms: Room[] = [
   { slug: "dokumentasi-kegiatan", title: "Dokumentasi & Galeri", description: "Catatan visual kegiatan komunitas", meta: "Lihat dokumentasi", icon: Camera, tone: "bg-[#ede7f6]", iconTone: "text-[#6a1b9a]" },
   { slug: "praktik-baik-guru", title: "Praktik Baik Guru", description: "Berbagi strategi pembelajaran", meta: "Jelajahi praktik", icon: UsersRound, tone: "bg-[#e0f7fa]", iconTone: "text-[#00677d]" },
   { slug: "forum-diskusi-guru", title: "Forum Diskusi Guru", description: "Ruang bertukar pengalaman", meta: "Buka ruang diskusi", icon: UsersRound, tone: "bg-[#fff8e1]", iconTone: "text-[#a15c00]" },
-  { slug: "peningkatan-rapor-pendidikan", title: "Peningkatan Rapor Pendidikan", description: "Refleksi dan tindak lanjut sekolah", meta: "Lihat informasi", icon: FileBarChart, tone: "bg-[#f3e5f5]", iconTone: "text-[#7b1fa2]" },
 ];
 
 const faqItems = [

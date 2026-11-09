@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { BarChart3, BookOpen, Camera, CircleHelp, ClipboardCheck, Grid2X2, Menu, School, Search, ShieldCheck, Upload, UsersRound, X } from "lucide-react";
+import { BookOpen, Camera, CircleHelp, ClipboardCheck, Grid2X2, Menu, School, Search, ShieldCheck, Upload, UsersRound, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type CommunityNavProps = { schoolName: string; logoUrl: string; searchValue: string; onSearchChange: (value: string) => void };
@@ -17,7 +17,6 @@ const spaceLinks: SpaceLink[] = [
   { href: "/komunitas-belajar/dokumentasi-kegiatan", label: "Dokumentasi Kegiatan", icon: Camera, tone: "text-[#8e24aa]" },
   { href: "/komunitas-belajar/praktik-baik-guru", label: "Praktik Baik Guru", icon: UsersRound, tone: "text-[#00677d]" },
   { href: "/komunitas-belajar/forum-diskusi-guru", label: "Forum Diskusi Guru", icon: UsersRound, tone: "text-[#a15c00]" },
-  { href: "/komunitas-belajar/peningkatan-rapor-pendidikan", label: "Rapor Pendidikan", icon: BarChart3, tone: "text-[#7b1fa2]" },
 ];
 
 function SpaceMenu({ onClose }: { onClose: () => void }) {
@@ -37,7 +36,7 @@ export function CommunityNav({ schoolName, logoUrl, searchValue, onSearchChange 
       <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6">
         <div className="flex min-h-[4.5rem] items-center gap-3">
           <Link href="#beranda" onClick={closeMenus} title="Beranda Komunitas Belajar" className="flex min-w-0 shrink-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#005bbf]"><Image src={logoUrl} alt="" width={40} height={40} className="h-10 w-10 object-contain" unoptimized /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden"><Image src={logoUrl} alt="" width={40} height={40} className="h-10 w-10 object-contain" unoptimized /></span>
             <span className="hidden min-w-0 sm:flex sm:flex-col"><span className="truncate text-sm font-bold leading-tight text-[#191c1e]">Komunitas Belajar</span><span className="max-w-[180px] text-[11px] leading-tight text-[#64748b]">{schoolName}</span></span>
             <span className="flex min-w-0 flex-col sm:hidden"><span className="truncate text-xs font-bold text-[#191c1e]">Kombel Sekolah</span><span className="truncate text-[10px] leading-tight text-[#64748b]">{schoolName}</span></span>
           </Link>

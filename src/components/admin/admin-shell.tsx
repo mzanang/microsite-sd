@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, BookOpen, CheckCircle2, ChevronRight, CircleAlert, Eye, FileText, Image as ImageIcon, LayoutDashboard, LogOut, Menu, Palette, PanelLeftClose, PanelLeftOpen, Settings, UsersRound, X } from "lucide-react";
+import { BarChart3, BookOpen, CheckCircle2, ChevronRight, CircleAlert, Eye, FileCheck2, FileText, Image as ImageIcon, LayoutDashboard, LogOut, Menu, Palette, PanelLeftClose, PanelLeftOpen, Settings, UsersRound, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,6 +16,7 @@ const nav = [
   { href: "/admin/media", label: "Media", icon: ImageIcon },
   { href: "/admin/settings", label: "Tautan & kontak", icon: Settings },
   { href: "/admin/komunitas-belajar/pengguna", label: "Pengguna Komunitas", icon: UsersRound },
+  { href: "/admin/komunitas-belajar/sk", label: "SK Komunitas", icon: FileCheck2 },
   { href: "/admin/publication", label: "Pratinjau & publikasi", icon: Eye },
 ];
 

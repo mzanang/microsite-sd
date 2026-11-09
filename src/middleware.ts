@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const protectedAdminPath = request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login");
-  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard") || request.nextUrl.pathname.startsWith("/komunitas-belajar/pengguna") || request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password");
+  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard") || request.nextUrl.pathname.startsWith("/komunitas-belajar/pengguna") || request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password") || request.nextUrl.pathname.startsWith("/komunitas-belajar/administrasi") || request.nextUrl.pathname.startsWith("/komunitas-belajar/monitoring");
   const passwordChangePath = request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password");
 
   if (protectedAdminPath && !user) return NextResponse.redirect(new URL("/admin/login", request.url));
@@ -39,4 +39,4 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/komunitas-belajar/dashboard/:path*", "/komunitas-belajar/pengguna/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/komunitas-belajar/dashboard/:path*", "/komunitas-belajar/pengguna/:path*", "/komunitas-belajar/ganti-password/:path*", "/komunitas-belajar/administrasi/:path*", "/komunitas-belajar/monitoring/:path*"] };

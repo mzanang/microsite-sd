@@ -10,7 +10,6 @@ const pages = {
   "dokumentasi-kegiatan": { title: "Dokumentasi Kegiatan", description: "Dokumentasi kegiatan Komunitas Belajar Guru SD Negeri Dukuhwaru 01.", kind: "document" as const },
   "praktik-baik-guru": { title: "Praktik Baik Guru", description: "Ruang berbagi strategi dan pengalaman pembelajaran dari komunitas guru.", kind: "document" as const },
   "forum-diskusi-guru": { title: "Forum Diskusi Guru", description: "Ruang bertukar pengalaman dan gagasan untuk mendukung pembelajaran di sekolah.", kind: "document" as const },
-  "peningkatan-rapor-pendidikan": { title: "Peningkatan Rapor Pendidikan", description: "Informasi refleksi dan tindak lanjut peningkatan mutu pendidikan sekolah.", kind: "document" as const },
 } as const;
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -25,5 +24,5 @@ export default async function CommunityPublicSubpage({ params }: PageProps) {
   const { slug } = await params;
   const page = pages[slug as keyof typeof pages];
   if (!page) notFound();
-  return <CommunityPublicPage title={page.title} description={page.description} kind={page.kind} />;
+  return <CommunityPublicPage slug={slug} title={page.title} description={page.description} kind={page.kind} />;
 }
