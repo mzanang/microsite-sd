@@ -20,7 +20,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const protectedAdminPath = request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login");
-  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard") || request.nextUrl.pathname.startsWith("/komunitas-belajar/pengguna");
+  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard") || request.nextUrl.pathname.startsWith("/komunitas-belajar/pengguna") || request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password");
+  const passwordChangePath = request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password");
 
   if (protectedAdminPath && !user) return NextResponse.redirect(new URL("/admin/login", request.url));
   if (protectedAdminPath && user) {
@@ -30,8 +31,9 @@ export async function middleware(request: NextRequest) {
 
   if (protectedKbPath && !user) return NextResponse.redirect(new URL("/komunitas-belajar/login", request.url));
   if (protectedKbPath && user) {
-    const { data: profile } = await supabase.from("kb_profiles").select("id").eq("auth_user_id", user.id).eq("is_active", true).maybeSingle();
+    const { data: profile } = await supabase.from("kb_profiles").select("id, must_change_password").eq("auth_user_id", user.id).eq("is_active", true).maybeSingle();
     if (!profile) return NextResponse.redirect(new URL("/komunitas-belajar/login?error=forbidden", request.url));
+    if (profile.must_change_password && !passwordChangePath) return NextResponse.redirect(new URL("/komunitas-belajar/ganti-password", request.url));
   }
 
   return response;

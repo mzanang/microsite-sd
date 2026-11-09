@@ -18,6 +18,7 @@ const roleLabels = {
 export default async function CommunityDashboardPage() {
   const profile = await getCurrentKbProfile();
   if (!profile) redirect("/komunitas-belajar/login");
+  if (profile.must_change_password) redirect("/komunitas-belajar/ganti-password");
 
   const supabase = await createClient();
   const [{ count: requirementCount }, { count: teacherCount }, { count: submissionCount }] = await Promise.all([

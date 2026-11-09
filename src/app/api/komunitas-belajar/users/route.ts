@@ -1,24 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createKbAdminClient, getCurrentKbProfile, normalizeLoginIdentifier } from "@/lib/kb/auth";
-import { createClient } from "@/lib/supabase/server";
-
-async function canManageCommunityUsers() {
-  const kbProfile = await getCurrentKbProfile();
-  if (kbProfile?.role === "super_admin") return true;
-
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return false;
-  const { data: adminProfile } = await supabase.from("admin_profiles").select("id").eq("user_id", userData.user.id).eq("is_active", true).maybeSingle();
-  return Boolean(adminProfile);
-}
+import { canManageKbUsers, createKbAdminClient, generateTemporaryPassword, normalizeLoginIdentifier } from "@/lib/kb/auth";
 
 const createUserSchema = z.object({
   full_name: z.string().trim().min(2).max(120),
   login_identifier: z.string().trim().min(4).max(40),
   role: z.enum(["kepala_sekolah", "guru", "pengawas_dabin"]),
-  temporary_password: z.string().min(8).max(128),
   teacher_type: z.string().trim().max(100).optional().default(""),
   public_title: z.string().trim().max(120).optional().default(""),
   is_public: z.boolean().optional().default(false),
@@ -33,7 +20,7 @@ function communityDatabaseError(error: { code?: string; message?: string }) {
 }
 
 export async function GET() {
-  if (!(await canManageCommunityUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+  if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
 
   const admin = createKbAdminClient();
   const { data, error } = await admin.from("kb_profiles").select("id, full_name, login_identifier, role, teacher_type, public_title, is_active, is_public, must_change_password, created_at").order("full_name", { ascending: true });
@@ -42,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await canManageCommunityUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+  if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   const parsed = createUserSchema.safeParse(body);
@@ -57,8 +44,9 @@ export async function POST(request: Request) {
     if (lookupError) return NextResponse.json({ error: communityDatabaseError(lookupError) }, { status: 503 });
     if (existing) return NextResponse.json({ error: "NIP atau NIK sudah terdaftar." }, { status: 409 });
 
+    const temporaryPassword = generateTemporaryPassword();
     const internalEmail = `${crypto.randomUUID()}@kb.internal`;
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({ email: internalEmail, password: parsed.data.temporary_password, email_confirm: true, user_metadata: { kb_login_identifier: identifier } });
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({ email: internalEmail, password: temporaryPassword, email_confirm: true, user_metadata: { kb_login_identifier: identifier } });
     if (authError || !authData.user) return NextResponse.json({ error: "Akun pengguna gagal dibuat." }, { status: 500 });
 
     const { error: profileError } = await admin.from("kb_profiles").insert({
@@ -77,7 +65,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: communityDatabaseError(profileError) }, { status: profileError.code === "PGRST205" || profileError.code === "42P01" || profileError.code === "42703" ? 503 : 500 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, temporary_password: temporaryPassword });
   } catch (error) {
     console.error("KB user creation failed", error);
     return NextResponse.json({ error: "Layanan pembuatan pengguna belum siap digunakan." }, { status: 503 });

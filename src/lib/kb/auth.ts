@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomInt } from "node:crypto";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,10 +30,32 @@ export function createKbAdminClient() {
   return createSupabaseAdminClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
+export function generateTemporaryPassword() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
+  const required = ["A", "a", "7", "!"];
+  const password = [...required, ...Array.from({ length: 12 }, () => alphabet[randomInt(alphabet.length)])];
+  for (let index = password.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(index + 1);
+    [password[index], password[swapIndex]] = [password[swapIndex], password[index]];
+  }
+  return password.join("");
+}
+
 export async function getCurrentKbProfile(): Promise<KbProfile | null> {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
   const { data } = await supabase.from("kb_profiles").select("id, auth_user_id, full_name, login_identifier, role, teacher_type, public_title, is_active, is_public, must_change_password").eq("auth_user_id", userData.user.id).eq("is_active", true).maybeSingle();
   return (data as KbProfile | null) ?? null;
+}
+
+export async function canManageKbUsers() {
+  const kbProfile = await getCurrentKbProfile();
+  if (kbProfile?.role === "super_admin") return true;
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return false;
+  const { data: adminProfile } = await supabase.from("admin_profiles").select("id").eq("user_id", userData.user.id).eq("is_active", true).maybeSingle();
+  return Boolean(adminProfile);
 }

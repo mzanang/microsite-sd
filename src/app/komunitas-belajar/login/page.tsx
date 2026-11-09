@@ -21,9 +21,9 @@ export default function CommunityLoginPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ login_identifier: form.get("login_identifier"), password: form.get("password") }),
       });
-      const result = await response.json().catch(() => ({})) as { error?: string; ok?: boolean };
+      const result = await response.json().catch(() => ({})) as { error?: string; ok?: boolean; must_change_password?: boolean };
       if (!response.ok || !result.ok) throw new Error(result.error || "Login gagal.");
-      router.push("/komunitas-belajar/dashboard");
+      router.push(result.must_change_password ? "/komunitas-belajar/ganti-password" : "/komunitas-belajar/dashboard");
       router.refresh();
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "Login gagal.");
