@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   Camera,
@@ -12,7 +11,9 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
+import { CommunityNav } from "@/components/community/community-nav";
 import type { PublicCommunityData, PublicCommunityProfile } from "@/lib/community-data";
+import { schoolProfileLeft, schoolProfileRight } from "@/lib/community-school-profile";
 
 const publicCards = [
   { slug: "sk-komunitas-belajar", label: "SK Komunitas Belajar", icon: Globe2 },
@@ -25,20 +26,7 @@ const publicCards = [
 export function CommunityLanding({ data }: { data: PublicCommunityData }) {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(145deg,#f5e7e9_0%,#eef5ff_100%)] text-[#27374c]">
-      <header className="border-b border-[#d7e1ec] bg-white/90 backdrop-blur">
-        <div className="mx-auto flex min-h-16 w-full max-w-3xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
-          <Link href="#beranda" className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1264c5]">
-            <Image src={data.school.logo_url} alt="" width={40} height={40} className="h-10 w-10 shrink-0 object-contain" unoptimized />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-extrabold tracking-tight text-[#143d72]">{data.school.name}</span>
-              <span className="block text-[10px] font-bold uppercase tracking-[.16em] text-[#6c7f98]">Komunitas Belajar Guru</span>
-            </span>
-          </Link>
-          <Link href="/komunitas-belajar/login" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-[#1264c5] px-4 text-sm font-bold text-white transition hover:bg-[#0d4e9b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1264c5]">
-            Masuk
-          </Link>
-        </div>
-      </header>
+      <CommunityNav schoolName={data.school.name} logoUrl={data.school.logo_url} />
 
       <div id="beranda" className="mx-auto w-full max-w-3xl px-5 pb-16 pt-10 sm:px-8 sm:pt-14">
         <section className="text-center" aria-labelledby="community-title">
@@ -85,13 +73,15 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[.18em] text-[#1264c5]">Tentang sekolah</p>
-              <h2 id="school-profile-title" className="mt-2 text-2xl font-extrabold tracking-tight text-[#173253]">Profil sekolah</h2>
+              <h2 id="school-profile-title" className="mt-2 text-2xl font-extrabold tracking-tight text-[#173253]">Profil Sekolah</h2>
             </div>
-            <School className="text-[#1264c5]" size={28} aria-hidden="true" />
+            <School className="text-[#ff6b2d]" size={28} aria-hidden="true" />
           </div>
-          <article className="mt-5 rounded-2xl border border-white/80 bg-white p-6 shadow-[0_10px_25px_rgba(43,55,75,.08)] sm:p-7">
-            <h3 className="text-lg font-extrabold text-[#173f70]">{data.school.name}</h3>
-            <p className="mt-3 text-sm leading-7 text-[#5d718a]">{data.school.description}</p>
+          <article className="mt-5 rounded-2xl border border-white/80 bg-white p-5 shadow-[0_10px_25px_rgba(43,55,75,.08)] sm:p-6">
+            <div className="grid gap-5 lg:grid-cols-2">
+              <SchoolProfileTable fields={schoolProfileLeft.map((field) => field.label === "Nama Sekolah" ? { ...field, value: data.school.name } : field)} />
+              <SchoolProfileTable fields={schoolProfileRight.map((field) => field.label === "Kepala Sekolah" && data.principal ? { ...field, value: data.principal.name } : field)} />
+            </div>
             <div className="mt-5 flex items-start gap-3 border-t border-[#e3eaf2] pt-5 text-sm leading-6 text-[#5d718a]"><MapPin className="mt-0.5 shrink-0 text-[#1264c5]" size={18} aria-hidden="true" /><span>{data.school.address || "Alamat sekolah belum ditambahkan."}</span></div>
           </article>
         </section>
@@ -122,4 +112,8 @@ function ProfileRow({ profile, principal }: { profile: PublicCommunityProfile; p
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return <div className="rounded-xl border border-dashed border-[#b8c9dc] bg-[#f8fbff] px-5 py-7 text-center sm:col-span-2"><p className="font-bold text-[#34577f]">{title}</p><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[#6c7f98]">{description}</p></div>;
+}
+
+function SchoolProfileTable({ fields }: { fields: { label: string; value: string }[] }) {
+  return <dl className="overflow-hidden rounded-2xl border border-[#dce4ea] bg-white">{fields.map((field) => <div key={field.label} className="grid min-h-12 grid-cols-[minmax(8.5rem,.9fr)_1.1fr] border-b border-[#e6ebef] last:border-b-0 sm:grid-cols-[minmax(9.5rem,1fr)_1.2fr]"><dt className="bg-[#f5f7f8] px-4 py-3 text-xs font-extrabold leading-5 text-[#294457] sm:text-sm">{field.label}</dt><dd className="flex items-center px-4 py-3 text-sm leading-5 text-[#4d6a7d]">{field.value}</dd></div>)}</dl>;
 }
