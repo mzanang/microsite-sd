@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentKbProfile, createKbAdminClient } from "@/lib/kb/auth";
+import { notifyReviewersAboutSubmission } from "@/lib/kb/notifications";
 
 const maxFileSize = 100 * 1024 * 1024;
 const mimeExtensions: Record<string, string> = {
@@ -20,9 +21,11 @@ export async function GET() {
   const profile = await getCurrentKbProfile();
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
   const admin = createKbAdminClient();
-  const [{ data: requirements, error: requirementError }, { data: submissions, error: submissionError }] = await Promise.all([
-    admin.from("kb_document_requirements").select("id, name, description, collection_method, is_required, due_at, category_id, period_id").eq("is_active", true).order("sort_order", { ascending: true }),
-    profile.role === "guru" ? admin.from("kb_submissions").select("id, requirement_id, status, current_version_no, submitted_at, updated_at").eq("teacher_profile_id", profile.id) : admin.from("kb_submissions").select("id, requirement_id, teacher_profile_id, status, current_version_no, submitted_at, updated_at").order("updated_at", { ascending: false }),
+  const canSeeAllSubmissions = profile.role !== "guru" || profile.community_position === "ketua";
+  const [{ data: requirements, error: requirementError }, { data: submissions, error: submissionError }, { data: participants }] = await Promise.all([
+    admin.from("kb_document_requirements").select("id, name, description, collection_method, is_required, due_at, category_id, period_id, attendance_session_id").eq("is_active", true).order("sort_order", { ascending: true }),
+    canSeeAllSubmissions ? admin.from("kb_submissions").select("id, requirement_id, teacher_profile_id, status, current_version_no, submitted_at, updated_at").order("updated_at", { ascending: false }) : admin.from("kb_submissions").select("id, requirement_id, status, current_version_no, submitted_at, updated_at").eq("teacher_profile_id", profile.id),
+    admin.from("kb_profiles").select("id, full_name, login_identifier").eq("role", "guru").eq("is_active", true).order("full_name", { ascending: true }),
   ]);
   if (requirementError || submissionError) return NextResponse.json({ error: "Data administrasi belum dapat dimuat." }, { status: 503 });
   const submissionRows = submissions ?? [];
@@ -33,21 +36,32 @@ export async function GET() {
   for (const version of versions ?? []) if (!latestVersions.has(version.submission_id)) latestVersions.set(version.submission_id, version);
   const teacherIds = submissionRows.map((submission) => "teacher_profile_id" in submission ? submission.teacher_profile_id : null).filter(Boolean) as string[];
   const { data: teachers } = teacherIds.length ? await admin.from("kb_profiles").select("id, full_name, login_identifier, role, teacher_type, teaching_grade").in("id", teacherIds) : { data: [] };
-  return NextResponse.json({ requirements: requirements ?? [], submissions: submissionRows.map((submission) => ({ ...submission, latest_version: latestVersions.get(submission.id) ?? null, reviews: (reviews ?? []).filter((review) => review.submission_id === submission.id), teacher: teachers?.find((teacher) => teacher.id === ("teacher_profile_id" in submission ? submission.teacher_profile_id : "")) ?? null })) });
+  const reviewBySubmission = new Map((reviews ?? []).filter((review) => review.reviewer_role === "kepala_sekolah").map((review) => [review.submission_id, review]));
+  const linkedSessionIds = [...new Set((requirements ?? []).map((requirement) => requirement.attendance_session_id).filter(Boolean))] as string[];
+  const { data: linkedSessions } = linkedSessionIds.length ? await admin.from("kb_attendance_sessions").select("id, meeting_number, material_title").in("id", linkedSessionIds) : { data: [] };
+  const sessionById = new Map((linkedSessions ?? []).map((session) => [session.id, session]));
+  const requirementRows = (requirements ?? []).map((requirement) => ({ ...requirement, meeting_number: requirement.attendance_session_id ? sessionById.get(requirement.attendance_session_id)?.meeting_number ?? null : null, material_title: requirement.attendance_session_id ? sessionById.get(requirement.attendance_session_id)?.material_title ?? null : null }));
+  return NextResponse.json({ requirements: requirementRows, participants: participants ?? [], submissions: submissionRows.map((submission) => {
+    const currentReview = reviewBySubmission.get(submission.id);
+    const reviewIsCurrent = Boolean(currentReview && (!submission.submitted_at || !currentReview.reviewed_at || new Date(currentReview.reviewed_at).getTime() >= new Date(submission.submitted_at).getTime()));
+    return { ...submission, status: reviewIsCurrent ? currentReview?.status : submission.status, latest_version: latestVersions.get(submission.id) ?? null, reviews: (reviews ?? []).filter((review) => review.submission_id === submission.id), teacher: teachers?.find((teacher) => teacher.id === ("teacher_profile_id" in submission ? submission.teacher_profile_id : "")) ?? null };
+  }) });
 }
 
 export async function POST(request: Request) {
   const profile = await getCurrentKbProfile();
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
-  if (profile.role !== "guru") return NextResponse.json({ error: "Hanya Guru yang dapat mengirim administrasi." }, { status: 403 });
+  if (profile.role !== "guru") return NextResponse.json({ error: "Hanya guru yang dapat mengirim administrasi miliknya sendiri." }, { status: 403 });
   const form = await request.formData();
   const requirementId = String(form.get("requirement_id") ?? "");
   const method = String(form.get("collection_method") ?? "");
   if (!requirementId || !["file", "link"].includes(method)) return NextResponse.json({ error: "Persyaratan dan metode pengumpulan wajib dipilih." }, { status: 400 });
   const admin = createKbAdminClient();
-  const { data: requirement, error: requirementError } = await admin.from("kb_document_requirements").select("id, collection_method, max_file_size_bytes, allowed_mime_types, allowed_link_domains, is_active").eq("id", requirementId).eq("is_active", true).maybeSingle();
+  const { data: requirement, error: requirementError } = await admin.from("kb_document_requirements").select("id, name, collection_method, max_file_size_bytes, allowed_mime_types, allowed_link_domains, is_active").eq("id", requirementId).eq("is_active", true).maybeSingle();
   if (requirementError || !requirement) return NextResponse.json({ error: "Persyaratan tidak ditemukan atau sudah tidak aktif." }, { status: 404 });
   if (requirement.collection_method !== "both" && requirement.collection_method !== method) return NextResponse.json({ error: "Metode pengumpulan ini tidak diizinkan." }, { status: 400 });
+  const { data: existing } = await admin.from("kb_submissions").select("id, current_version_no, status").eq("requirement_id", requirementId).eq("teacher_profile_id", profile.id).maybeSingle();
+  if (existing?.status === "lengkap") return NextResponse.json({ error: "Tugas sudah diverifikasi KS dan tidak dapat diubah." }, { status: 409 });
 
   let storagePath: string | null = null;
   let versionData: Record<string, unknown>;
@@ -70,7 +84,6 @@ export async function POST(request: Request) {
     versionData = { collection_method: "link", storage_path: null, original_name: null, mime_type: null, file_size: null, external_url: parsedUrl.toString() };
   }
 
-  const { data: existing } = await admin.from("kb_submissions").select("id, current_version_no").eq("requirement_id", requirementId).eq("teacher_profile_id", profile.id).maybeSingle();
   const versionNo = Number(existing?.current_version_no ?? 0) + 1;
   const { data: submission, error: submissionError } = existing
     ? await admin.from("kb_submissions").update({ status: "menunggu_pemeriksaan", current_version_no: versionNo, submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", existing.id).select("id, requirement_id, status, current_version_no, submitted_at, updated_at").single()
@@ -78,5 +91,25 @@ export async function POST(request: Request) {
   if (submissionError || !submission) { if (storagePath) await admin.storage.from("kb-administrasi").remove([storagePath]); return NextResponse.json({ error: "Pengumpulan gagal disimpan." }, { status: 500 }); }
   const { error: versionError } = await admin.from("kb_submission_versions").insert({ submission_id: submission.id, version_no: versionNo, submitted_by: profile.id, ...versionData });
   if (versionError) { if (storagePath) await admin.storage.from("kb-administrasi").remove([storagePath]); return NextResponse.json({ error: "Versi dokumen gagal disimpan." }, { status: 500 }); }
+  await admin.from("kb_reviews").delete().eq("submission_id", submission.id);
+  await notifyReviewersAboutSubmission(admin, { id: submission.id, taskName: requirement.name, teacherName: profile.full_name, versionNo });
   return NextResponse.json({ ok: true, submission }, { status: 201 });
+}
+
+export async function DELETE(request: Request) {
+  const profile = await getCurrentKbProfile();
+  if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
+  if (profile.role !== "guru") return NextResponse.json({ error: "Hanya guru yang dapat membatalkan pengumpulan miliknya." }, { status: 403 });
+  const body = await request.json().catch(() => null) as { submission_id?: unknown } | null;
+  if (!body || typeof body.submission_id !== "string") return NextResponse.json({ error: "Pengumpulan tidak valid." }, { status: 400 });
+  const admin = createKbAdminClient();
+  const { data: submission } = await admin.from("kb_submissions").select("id, teacher_profile_id, status").eq("id", body.submission_id).maybeSingle();
+  if (!submission || submission.teacher_profile_id !== profile.id) return NextResponse.json({ error: "Pengumpulan tidak ditemukan." }, { status: 404 });
+  if (submission.status === "lengkap") return NextResponse.json({ error: "Tugas sudah diverifikasi KS dan tidak dapat dibatalkan." }, { status: 409 });
+  const { data: versions } = await admin.from("kb_submission_versions").select("storage_path").eq("submission_id", submission.id);
+  const paths = (versions ?? []).map((version) => version.storage_path).filter((path): path is string => Boolean(path));
+  const { error } = await admin.from("kb_submissions").delete().eq("id", submission.id).eq("teacher_profile_id", profile.id);
+  if (error) return NextResponse.json({ error: "Pengumpulan gagal dibatalkan." }, { status: 503 });
+  if (paths.length) await admin.storage.from("kb-administrasi").remove(paths);
+  return NextResponse.json({ ok: true });
 }

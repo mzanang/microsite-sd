@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { canManageKbUsers, createKbAdminClient } from "@/lib/kb/auth";
+import { canManageKbCommunityDocuments, createKbAdminClient } from "@/lib/kb/auth";
 
 const bucket = "kb-public-documents";
 const maxFileSize = 20 * 1024 * 1024;
@@ -24,7 +24,7 @@ function publicUrl(admin: ReturnType<typeof createKbAdminClient>, storagePath: s
 }
 
 export async function GET() {
-  if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+  if (!(await canManageKbCommunityDocuments())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
   const admin = createKbAdminClient();
   const { data, error } = await admin.from("kb_public_documents").select("id, title, description, storage_path, original_name, mime_type, file_size, sort_order, is_published, created_at, updated_at").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: errorMessage(error) }, { status: 503 });
@@ -32,7 +32,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+  if (!(await canManageKbCommunityDocuments())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
   const description = String(form.get("description") ?? "").trim();
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+  if (!(await canManageKbCommunityDocuments())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
   const parsed = updateSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Data dokumen tidak valid." }, { status: 400 });
   const { id, ...changes } = parsed.data;
@@ -66,7 +66,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+  if (!(await canManageKbCommunityDocuments())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
   const body = await request.json().catch(() => null) as { id?: string } | null;
   if (!body?.id || !z.string().uuid().safeParse(body.id).success) return NextResponse.json({ error: "Dokumen tidak valid." }, { status: 400 });
   const admin = createKbAdminClient();

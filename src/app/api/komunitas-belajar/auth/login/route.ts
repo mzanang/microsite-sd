@@ -4,7 +4,7 @@ import { createKbAdminClient, normalizeLoginIdentifier } from "@/lib/kb/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
-  login_identifier: z.string().trim().min(4).max(32),
+  login_identifier: z.string().trim().regex(/^\d{4,32}$/, "NIP/NIK harus berisi angka.").max(32),
   password: z.string().min(1).max(256),
 });
 
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   try {
     const admin = createKbAdminClient();
     const identifier = normalizeLoginIdentifier(parsed.data.login_identifier);
-    const { data: profile } = await admin.from("kb_profiles").select("auth_user_id, role, must_change_password, is_active").eq("login_identifier", identifier).eq("is_active", true).maybeSingle();
+    const { data: profile } = await admin.from("kb_profiles").select("auth_user_id, role, community_position, must_change_password, is_active").eq("login_identifier", identifier).eq("is_active", true).maybeSingle();
     if (!profile?.auth_user_id) return NextResponse.json({ error: "NIP/NIK atau kata sandi tidak cocok." }, { status: 401 });
 
     const { data: authData } = await admin.auth.admin.getUserById(profile.auth_user_id);
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: "NIP/NIK atau kata sandi tidak cocok." }, { status: 401 });
 
     attempts.delete(key);
-    return NextResponse.json({ ok: true, role: profile.role, must_change_password: profile.must_change_password });
+    return NextResponse.json({ ok: true, role: profile.role, community_position: profile.community_position, must_change_password: profile.must_change_password });
   } catch {
     return NextResponse.json({ error: "Login komunitas belajar belum tersedia." }, { status: 503 });
   }

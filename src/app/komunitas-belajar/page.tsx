@@ -10,5 +10,6 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function CommunityPage() {
-  return <CommunityLanding data={await getPublicCommunityData()} />;
+  const data = await getPublicCommunityData();
+  return <CommunityLanding data={data} />;
 }

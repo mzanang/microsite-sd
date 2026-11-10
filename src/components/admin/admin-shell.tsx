@@ -15,9 +15,13 @@ const nav = [
   { href: "/admin/appearance", label: "Pengaturan tampilan", icon: Palette },
   { href: "/admin/media", label: "Media", icon: ImageIcon },
   { href: "/admin/settings", label: "Tautan & kontak", icon: Settings },
-  { href: "/admin/komunitas-belajar/pengguna", label: "Pengguna Komunitas", icon: UsersRound },
-  { href: "/admin/komunitas-belajar/sk", label: "SK Komunitas", icon: FileCheck2 },
   { href: "/admin/publication", label: "Pratinjau & publikasi", icon: Eye },
+];
+
+const communityNav = [
+  { href: "/admin/komunitas-belajar/pengguna", label: "Pengguna komunitas", icon: UsersRound },
+  { href: "/admin/komunitas-belajar/sk", label: "SK komunitas", icon: FileCheck2 },
+  { href: "/komunitas-belajar", label: "Lihat portal komunitas", icon: Eye },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -50,6 +54,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="my-7 h-px bg-ink/10" />
       <p className={cn("px-3 text-[10px] font-bold uppercase tracking-[.18em] text-ink/40", !sidebarVisible && "lg:hidden")}>Kelola microsite</p>
       <nav className="mt-3 space-y-1">{nav.map((item) => { const Icon = item.icon; const active = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href)); return <Link key={item.href} href={item.href} title={item.label} onClick={() => setOpen(false)} className={cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition", !sidebarVisible && "lg:justify-center lg:px-0", active ? "bg-[#6048e8] text-white shadow-[0_8px_18px_rgba(96,72,232,.2)]" : "text-ink/60 hover:bg-[#6048e8]/[.07] hover:text-[#6048e8]")}><Icon size={18} strokeWidth={1.8} /><span className={cn("flex-1", !sidebarVisible && "lg:hidden")}>{item.label}</span>{active && <ChevronRight size={15} className={cn(!sidebarVisible && "lg:hidden")} />}</Link>; })}</nav>
+      <div className="mt-7 border-t border-ink/10 pt-5"><p className={cn("px-3 text-[10px] font-bold uppercase tracking-[.18em] text-[#6048e8]/70", !sidebarVisible && "lg:hidden")}>Komunitas belajar</p><nav className="mt-3 space-y-1">{communityNav.map((item) => { const Icon = item.icon; const active = pathname === item.href || (item.href !== "/komunitas-belajar" && pathname.startsWith(item.href)); return <Link key={item.href} href={item.href} title={item.label} onClick={() => setOpen(false)} className={cn("flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition", !sidebarVisible && "lg:justify-center lg:px-0", active ? "bg-[#6048e8] text-white shadow-[0_8px_18px_rgba(96,72,232,.2)]" : "text-ink/60 hover:bg-[#6048e8]/[.07] hover:text-[#6048e8]")}><Icon size={18} strokeWidth={1.8} /><span className={cn("flex-1", !sidebarVisible && "lg:hidden")}>{item.label}</span>{active && <ChevronRight size={15} className={cn(!sidebarVisible && "lg:hidden")} />}</Link>; })}</nav></div>
       <div className={cn("mt-auto rounded-2xl bg-[#6048e8]/[.06] p-4", !sidebarVisible && "lg:hidden")}><div className="flex items-center gap-2 text-xs font-bold text-[#6048e8]"><BookOpen size={15} /> Tips hari ini</div><p className="mt-2 text-xs leading-5 text-ink/55">Perubahan disimpan sebagai draf sampai Anda menekan Publikasikan.</p></div>
       <Link href="/" target="_blank" title="Lihat halaman publik" className={cn("mt-3 flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-ink/60 hover:bg-[#6048e8]/[.07] hover:text-[#6048e8]", !sidebarVisible && "lg:justify-center lg:px-0")}><Eye size={18} /><span className={cn(!sidebarVisible && "lg:hidden")}>Lihat halaman publik</span></Link>
     </aside>

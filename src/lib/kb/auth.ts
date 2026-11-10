@@ -13,7 +13,11 @@ export type KbProfile = {
   login_identifier: string | null;
   role: KbRole;
   teacher_type: string | null;
+  teaching_subject: string | null;
+  teaching_grade: number | null;
+  teaching_grades: number[];
   public_title: string | null;
+  community_position: "ketua" | "anggota" | null;
   is_active: boolean;
   is_public: boolean;
   must_change_password: boolean;
@@ -45,17 +49,46 @@ export async function getCurrentKbProfile(): Promise<KbProfile | null> {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
-  const { data } = await supabase.from("kb_profiles").select("id, auth_user_id, full_name, login_identifier, role, teacher_type, public_title, is_active, is_public, must_change_password").eq("auth_user_id", userData.user.id).eq("is_active", true).maybeSingle();
+  const { data } = await supabase.from("kb_profiles").select("id, auth_user_id, full_name, login_identifier, role, teacher_type, teaching_subject, teaching_grade, teaching_grades, public_title, community_position, is_active, is_public, must_change_password").eq("auth_user_id", userData.user.id).eq("is_active", true).maybeSingle();
   return (data as KbProfile | null) ?? null;
 }
 
+export function getKbDashboardPath(profile: Pick<KbProfile, "role" | "community_position">) {
+  if (profile.role === "super_admin") return "/admin/dashboard";
+  if (profile.role === "guru" && profile.community_position === "ketua") return "/komunitas-belajar/ketua/dashboard";
+  if (profile.role === "guru") return "/komunitas-belajar/anggota/dashboard";
+  if (profile.role === "kepala_sekolah") return "/komunitas-belajar/ks/dashboard";
+  return "/komunitas-belajar/pengawas/dashboard";
+}
+
 export async function canManageKbUsers() {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return false;
+  try {
+    const admin = createKbAdminClient();
+    const [{ data: kbProfile }, { data: adminProfile }] = await Promise.all([
+      admin.from("kb_profiles").select("role, is_active").eq("auth_user_id", userData.user.id).maybeSingle(),
+      admin.from("admin_profiles").select("id").eq("user_id", userData.user.id).eq("is_active", true).maybeSingle(),
+    ]);
+    return Boolean((kbProfile?.role === "super_admin" && kbProfile.is_active) || adminProfile);
+  } catch {
+    return false;
+  }
+}
+
+export async function canManageKbCommunityDocuments() {
   const kbProfile = await getCurrentKbProfile();
-  if (kbProfile?.role === "super_admin") return true;
+  if (kbProfile?.role === "super_admin" || (kbProfile?.role === "guru" && kbProfile.community_position === "ketua")) return true;
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return false;
-  const { data: adminProfile } = await supabase.from("admin_profiles").select("id").eq("user_id", userData.user.id).eq("is_active", true).maybeSingle();
-  return Boolean(adminProfile);
+  try {
+    const admin = createKbAdminClient();
+    const { data: adminProfile } = await admin.from("admin_profiles").select("id").eq("user_id", userData.user.id).eq("is_active", true).maybeSingle();
+    return Boolean(adminProfile);
+  } catch {
+    return false;
+  }
 }
