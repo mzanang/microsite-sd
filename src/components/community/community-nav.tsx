@@ -13,13 +13,13 @@ type SpaceLink = { href: string; label: string; icon: LucideIcon; tone: string }
 const primaryLinks = [
   { hash: "#beranda", label: "Beranda", sectionId: "beranda" },
   { hash: "#profil-sekolah", label: "Profil Sekolah", sectionId: "profil-sekolah" },
-  { hash: "#guru", label: "Tenaga Pendidik", sectionId: "guru" },
+  { hash: "#guru", label: "Tim Komunitas", sectionId: "guru" },
 ];
 
 const spaceLinks: SpaceLink[] = [
   { href: "/komunitas-belajar/sk-komunitas-belajar", label: "SK Kombel", icon: ShieldCheck, tone: "text-[#005bbf]" },
   { href: "/komunitas-belajar/materi-kegiatan", label: "Materi Kegiatan", icon: BookOpen, tone: "text-[#2b5bb5]" },
-  { href: "/komunitas-belajar/daftar-hadir-notulen", label: "Daftar Hadir dan Notulen", icon: ClipboardCheck, tone: "text-[#2e7d32]" },
+  { href: "/komunitas-belajar/daftar-hadir", label: "Daftar Hadir", icon: ClipboardCheck, tone: "text-[#2e7d32]" },
   { href: "/komunitas-belajar/upload-tugas-kombel", label: "Tugas Kombel", icon: ClipboardCheck, tone: "text-[#e65100]" },
   { href: "/komunitas-belajar/dokumentasi-kegiatan", label: "Dokumentasi Kegiatan", icon: Camera, tone: "text-[#8e24aa]" },
   { href: "/komunitas-belajar/praktik-baik-guru", label: "Praktik Baik Guru", icon: UsersRound, tone: "text-[#00677d]" },

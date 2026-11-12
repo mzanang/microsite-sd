@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { CommunityWorkspaceLoader, RoleDashboardShell } from "@/components/community/role-dashboard";
+import { CommunityWorkspaceLoader } from "@/components/community/role-dashboard";
 import { getCurrentKbProfile, getKbDashboardPath } from "@/lib/kb/auth";
 import { getPublicCommunityDocuments } from "@/lib/community-data";
 import { getRoleDashboardData, getRoleWorkspaceData, type DashboardView } from "@/lib/kb/dashboard-data";
@@ -14,6 +14,7 @@ const menuDefinitions: Record<string, { title: string; permissionKey: string }> 
   memberikan_tugas: { title: "Buat Tugas Kombel", permissionKey: "memberikan_tugas" },
   upload_tugas: { title: "Upload Tugas", permissionKey: "upload_tugas" },
   tugas_kombel: { title: "Tugas Kombel", permissionKey: "upload_tugas" },
+  tugas: { title: "Tugas Kombel", permissionKey: "upload_tugas" },
   pengumpulan_anggota: { title: "Tugas Masuk", permissionKey: "upload_tugas" },
   daftar_hadir: { title: "Daftar Hadir", permissionKey: "daftar_hadir" },
   monitoring: { title: "Monitoring Anggota", permissionKey: "monitoring" },
@@ -52,5 +53,14 @@ export default async function CommunityWorkspacePage({ params }: PageProps) {
   const documents = definition.permissionKey === "upload_sk" ? await getPublicCommunityDocuments() : [];
   const pageTitle = menu === "verifikasi" && profile.role === "pengawas_dabin" ? "Monitoring Tugas" : definition.title;
   const accessLevel = profile.role === "pengawas_dabin" && menu === "verifikasi" ? "lihat" : permission.access_level;
-  return <RoleDashboardShell profile={profile} view={view as DashboardView} data={data} pageTitle={pageTitle} pageDescription="Ruang kerja Komunitas Belajar Guru"><CommunityWorkspaceLoader profile={profile} view={view as DashboardView} menu={menu} accessLevel={accessLevel} data={data} documents={documents} /></RoleDashboardShell>;
+  return (
+    <CommunityWorkspaceLoader
+      profile={profile}
+      view={view as DashboardView}
+      menu={menu}
+      accessLevel={accessLevel}
+      data={data}
+      documents={documents}
+    />
+  );
 }

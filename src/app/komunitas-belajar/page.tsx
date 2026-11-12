@@ -7,7 +7,8 @@ export const metadata: Metadata = {
   description: "Profil sekolah dan informasi publik Komunitas Belajar Guru SD Negeri Dukuhwaru 01.",
 };
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function CommunityPage() {
   const data = await getPublicCommunityData();

@@ -17,12 +17,13 @@ export async function POST(request: Request) {
   for (const file of files) {
     const extension = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
     const path = `community/${profile.id}/${crypto.randomUUID()}.${extension}`;
-    const result = await admin.storage.from(bucket).upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type, upsert: false });
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const result = await admin.storage.from(bucket).upload(path, bytes, { contentType: file.type, upsert: false });
     if (result.error) {
       if (uploaded.length) await admin.storage.from(bucket).remove(uploaded.map((item) => item.path));
       return NextResponse.json({ error: "Foto gagal diunggah." }, { status: 500 });
     }
-    uploaded.push({ path, name: file.name.slice(0, 180), size: file.size, mime_type: file.type });
+    uploaded.push({ path, name: file.name.slice(0, 180), size: bytes.byteLength, mime_type: file.type });
   }
   return NextResponse.json({ attachments: uploaded }, { status: 201 });
 }

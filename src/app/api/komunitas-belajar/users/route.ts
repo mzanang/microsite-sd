@@ -12,6 +12,7 @@ const createUserSchema = z.object({
   teaching_grades: z.array(z.coerce.number().int().min(1).max(6)).optional().default([]),
   public_title: z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional().default("")),
   community_position: z.enum(["ketua", "anggota"]).optional().default("anggota"),
+  recovery_email: z.string().trim().email("Format email pemulihan tidak valid.").or(z.literal("")).optional(),
   is_public: z.boolean().optional().default(false),
 });
 
@@ -26,6 +27,7 @@ const updateUserSchema = z.object({
   teaching_grades: z.array(z.coerce.number().int().min(1).max(6)).optional().default([]),
   public_title: z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional().default("")),
   community_position: z.enum(["ketua", "anggota"]).nullable().optional(),
+  recovery_email: z.string().trim().email("Format email tidak valid.").or(z.literal("")).optional().nullable(),
   is_active: z.boolean().default(true),
   is_public: z.boolean().default(false),
 });
@@ -56,7 +58,7 @@ export async function GET() {
   if (!(await canManageKbUsers())) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
 
   const admin = createKbAdminClient();
-  const { data, error } = await admin.from("kb_profiles").select("id, full_name, login_identifier, role, teacher_type, teaching_subject, teaching_grade, teaching_grades, public_title, community_position, is_active, is_public, must_change_password, created_at").order("full_name", { ascending: true });
+  const { data, error } = await admin.from("kb_profiles").select("id, full_name, login_identifier, role, teacher_type, teaching_subject, teaching_grade, teaching_grades, public_title, community_position, is_active, is_public, must_change_password, recovery_email, recovery_email_verified, created_at").order("full_name", { ascending: true });
   if (error) return NextResponse.json({ error: communityDatabaseError(error) }, { status: 503 });
   return NextResponse.json({ users: data ?? [] });
 }
@@ -91,6 +93,8 @@ export async function POST(request: Request) {
       ...teaching,
       public_title: parsed.data.role === "guru" ? parsed.data.public_title || null : null,
       community_position: parsed.data.role === "guru" ? parsed.data.community_position : null,
+      recovery_email: parsed.data.recovery_email || null,
+      recovery_email_verified: Boolean(parsed.data.recovery_email),
       is_public: parsed.data.is_public,
       must_change_password: true,
     });
@@ -128,7 +132,7 @@ export async function PATCH(request: Request) {
   if (existing) return NextResponse.json({ error: "NIP atau NIK sudah terdaftar." }, { status: 409 });
 
   const teaching = normalizeTeachingFields(parsed.data);
-  const { error } = await admin.from("kb_profiles").update({
+  const patchPayload: Record<string, unknown> = {
     full_name: parsed.data.full_name,
     login_identifier: identifier,
     role: parsed.data.role,
@@ -138,7 +142,12 @@ export async function PATCH(request: Request) {
     is_active: parsed.data.is_active,
     is_public: parsed.data.is_public,
     updated_at: new Date().toISOString(),
-  }).eq("id", parsed.data.id);
+  };
+  if (parsed.data.recovery_email !== undefined) {
+    patchPayload.recovery_email = parsed.data.recovery_email || null;
+    patchPayload.recovery_email_verified = Boolean(parsed.data.recovery_email);
+  }
+  const { error } = await admin.from("kb_profiles").update(patchPayload).eq("id", parsed.data.id);
 
   if (error) return NextResponse.json({ error: communityDatabaseError(error) }, { status: error.code === "PGRST205" || error.code === "42P01" || error.code === "42703" ? 503 : 500 });
   return NextResponse.json({ ok: true });

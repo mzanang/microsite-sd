@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, BarChart3, BookOpen, CalendarCheck2, CheckCircle2, ClipboardCheck, FileText, Image as ImageIcon, MessageCircle, Plus, RefreshCw, UserRound, UsersRound, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BarChart3, BookOpen, CalendarCheck2, CheckCircle2, ClipboardCheck, FileText, Image as ImageIcon, Lock, MessageCircle, Plus, RefreshCw, UserRound, UsersRound, X, type LucideIcon } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { KbProfile } from "@/lib/kb/auth";
 import type { DashboardRequirement, DashboardView, RoleDashboardData } from "@/lib/kb/dashboard-data";
 import { ReviewManager } from "@/components/community/review-manager";
 import { SkManagement } from "@/components/community/sk-management";
 import { SubmissionManager } from "@/components/community/submission-manager";
+import { SubmissionOverviewV2 } from "@/components/community/submission-overview";
 import { AttendanceWorkspace as AttendanceWorkspaceV2 } from "@/components/community/attendance-workspace";
 import { createClient, supabaseConfigured } from "@/lib/supabase/client";
+import { AccountSecurityDialog } from "@/components/community/account-security";
 
 export type PublicDocument = { id: string; title: string; description: string; original_name: string; public_url: string; created_at: string };
 type CommunityEntry = { id: string; menu_key: string; title: string; body: string; external_url: string | null; session_id: string | null; meeting_number: number | null; event_date: string | null; category: string; attachments: Array<{ path: string; name: string; size: number; mime_type: string; url?: string | null }>; is_published: boolean; is_pinned: boolean; created_by: string | null; created_at: string };
@@ -30,8 +32,9 @@ export function CommunityWorkspace({ profile, view, menu, accessLevel, data, doc
   if (resourceMap[menu]) { const resource = resourceMap[menu]; return <WorkspaceFrame eyebrow="Kegiatan komunitas" title={resource.title} description={resource.description} accessLevel={accessLevel}><ResourceWorkspaceRouter profile={profile} resource={resource} menu={menu} canManage={accessLevel === "kelola"} /></WorkspaceFrame>; }
   if (menu === "memberikan_tugas") return <WorkspaceFrame eyebrow="Manajemen tugas" title="Buat tugas Kombel" description="Tambahkan persyaratan administrasi yang akan dikerjakan oleh anggota." accessLevel={accessLevel}><TaskManager initialRequirements={data.requirements} /></WorkspaceFrame>;
   if (menu === "tugas_kombel") return <WorkspaceFrame eyebrow="Kegiatan komunitas" title="Tugas Kombel" description="Lihat persyaratan yang perlu diselesaikan dan buka ruang pengumpulan." accessLevel={accessLevel}><TaskList requirements={data.requirements} /></WorkspaceFrame>;
-  if (menu === "upload_tugas") return view === "anggota" || view === "ketua" ? <WorkspaceFrame eyebrow="Kumpulkan tugas" title="Kumpulkan Tugas" description="Kirim dokumen atau link tugas yang diminta Ketua Kombel." accessLevel={accessLevel}><SubmissionManager /></WorkspaceFrame> : <WorkspaceFrame eyebrow="Manajemen tugas" title="Daftar tugas" description="Lihat pengumpulan administrasi yang masuk sesuai kewenangan akun." accessLevel={accessLevel}><SubmissionOverviewV2 /></WorkspaceFrame>;
-  if (menu === "pengumpulan_anggota") return <WorkspaceFrame eyebrow="Manajemen tugas" title="Tugas Masuk" description="Pantau nama pengirim, peran, dan tanggal pengumpulan tugas anggota." accessLevel={accessLevel}><SubmissionOverviewV2 /></WorkspaceFrame>;
+  if (menu === "tugas") return <WorkspaceFrame eyebrow="Kumpulkan tugas" title="Tugas & Administrasi" description="Kelola pengumpulan dan pantau hasil verifikasi Kepala Sekolah." accessLevel={accessLevel}><SubmissionManager /></WorkspaceFrame>;
+  if (menu === "upload_tugas") return view === "anggota" || view === "ketua" ? <WorkspaceFrame eyebrow="Kumpulkan tugas" title="Kumpulkan Tugas" description="Kirim dokumen atau link tugas yang diminta Ketua Kombel." accessLevel={accessLevel}><SubmissionManager /></WorkspaceFrame> : <WorkspaceFrame eyebrow="Manajemen tugas" title="Daftar tugas" description="Lihat pengumpulan administrasi yang masuk sesuai kewenangan akun." accessLevel={accessLevel}><SubmissionOverviewV2 pageTitle="Daftar Tugas Masuk" pageDescription="Lihat pengumpulan administrasi yang masuk sesuai kewenangan akun." /></WorkspaceFrame>;
+  if (menu === "pengumpulan_anggota") return <WorkspaceFrame eyebrow="Manajemen tugas" title="Tugas Masuk" description="Pantau nama pengirim, peran, dan tanggal pengumpulan tugas anggota." accessLevel={accessLevel}><SubmissionOverviewV2 pageTitle="Tugas Masuk Anggota" pageDescription="Pantau nama pengirim, peran, status verifikasi Kepala Sekolah, dan catatan pemeriksaan." /></WorkspaceFrame>;
   if (menu === "verifikasi") return <WorkspaceFrame eyebrow="Pemeriksaan" title="Verifikasi tugas" description={view === "ks" ? "Periksa dokumen dan simpan hasil pemeriksaan untuk peran Anda." : "Pantau nama guru dan status tugas yang masuk."} accessLevel={accessLevel}><ReviewManager canReview={view === "ks"} /></WorkspaceFrame>;
   if (menu === "monitoring") return <WorkspaceFrame eyebrow="Monitoring" title="Monitoring anggota" description="Lihat status pengumpulan anggota tanpa mengubah data mereka." accessLevel={accessLevel}><SubmissionOverviewV2 /></WorkspaceFrame>;
   if (menu === "grafik") return <WorkspaceFrame eyebrow="Monitoring" title="Grafik dan statistik" description="Baca ringkasan data pengumpulan yang tersedia untuk akun Anda." accessLevel={accessLevel}><ChartWorkspace data={data} /></WorkspaceFrame>;
@@ -84,19 +87,24 @@ function ContentManager({ profile, resource, mode, canManage }: { profile: KbPro
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [contentResponse, attendanceResponse] = await Promise.all([
-      fetch("/api/komunitas-belajar/content?menu=" + mode, { cache: "no-store" }),
-      fetch("/api/komunitas-belajar/attendance", { cache: "no-store" }),
-    ]);
+    const contentPromise = fetch("/api/komunitas-belajar/content?menu=" + mode, { cache: "no-store" });
+    const attendancePromise = mode === "materi"
+      ? fetch("/api/komunitas-belajar/attendance", { cache: "no-store" })
+      : Promise.resolve(null);
+
+    const [contentResponse, attendanceResponse] = await Promise.all([contentPromise, attendancePromise]);
     const contentResult = await contentResponse.json().catch(() => ({}));
-    const attendanceResult = await attendanceResponse.json().catch(() => ({}));
-    if (!contentResponse.ok) setError(contentResult.error ?? "Konten gagal dimuat.");
-    else {
+    if (!contentResponse.ok) {
+      setError(contentResult.error ?? "Konten gagal dimuat.");
+    } else {
       const nextEntries = contentResult.entries ?? [];
       setEntries(nextEntries);
       if (mode === "materi") setMeetingNumber(Math.max(0, ...nextEntries.map((entry: CommunityEntry) => entry.meeting_number ?? 0)) + 1);
     }
-    if (attendanceResponse.ok) setSessions(attendanceResult.sessions ?? []);
+    if (attendanceResponse && attendanceResponse.ok) {
+      const attendanceResult = await attendanceResponse.json().catch(() => ({}));
+      setSessions(attendanceResult.sessions ?? []);
+    }
     setLoading(false);
   }, [mode]);
 
@@ -107,6 +115,15 @@ function ContentManager({ profile, resource, mode, canManage }: { profile: KbPro
     window.addEventListener("kb-forum-refresh", refresh);
     return () => window.removeEventListener("kb-forum-refresh", refresh);
   }, [load, mode]);
+
+  async function ensureSessionsLoaded() {
+    if (sessions.length) return;
+    const res = await fetch("/api/komunitas-belajar/attendance", { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setSessions(data.sessions ?? []);
+    }
+  }
 
   function resetForm() {
     setEditingId(null);
@@ -130,10 +147,12 @@ function ContentManager({ profile, resource, mode, canManage }: { profile: KbPro
 
   function openCreate() {
     resetForm();
+    void ensureSessionsLoaded();
     setModalOpen(true);
   }
 
   function editEntry(entry: CommunityEntry) {
+    void ensureSessionsLoaded();
     setEditingId(entry.id);
     setTitle(entry.title);
     setBody(entry.body);
@@ -215,26 +234,34 @@ function TaskManager({ initialRequirements }: { initialRequirements: DashboardRe
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
-    const [taskResponse, attendanceResponse] = await Promise.all([fetch("/api/komunitas-belajar/tasks", { cache: "no-store" }), fetch("/api/komunitas-belajar/attendance", { cache: "no-store" })]);
+  async function loadTasks() {
+    const taskResponse = await fetch("/api/komunitas-belajar/tasks", { cache: "no-store" });
     const body = await taskResponse.json().catch(() => ({}));
-    const attendanceBody = await attendanceResponse.json().catch(() => ({}));
     if (taskResponse.ok) setRequirements(body.requirements ?? []);
-    if (attendanceResponse.ok) setSessions(attendanceBody.sessions ?? []);
   }
 
-  useEffect(() => { void load(); }, []);
+  async function ensureSessionsLoaded() {
+    if (sessions.length) return;
+    const res = await fetch("/api/komunitas-belajar/attendance", { cache: "no-store" });
+    if (res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setSessions(body.sessions ?? []);
+    }
+  }
+
+  useEffect(() => { void loadTasks(); }, []);
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const response = await fetch("/api/komunitas-belajar/tasks", { method: editingId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(editingId ? { id: editingId } : {}), name, description, collection_method: method, due_at: dueAt, attendance_session_id: sessionId || null }) });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) setError(body.error ?? "Tugas gagal disimpan.");
-    else { setName(""); setDescription(""); setMethod("file"); setDueAt(""); setSessionId(""); setEditingId(null); setOpen(false); await load(); }
+    else { setName(""); setDescription(""); setMethod("file"); setDueAt(""); setSessionId(""); setEditingId(null); setOpen(false); await loadTasks(); }
     setBusy(false);
   }
 
   function edit(requirement: DashboardRequirement) {
+    void ensureSessionsLoaded();
     setEditingId(requirement.id);
     setName(requirement.name);
     setDescription(requirement.description);
@@ -246,7 +273,7 @@ function TaskManager({ initialRequirements }: { initialRequirements: DashboardRe
 
   async function toggle(requirement: DashboardRequirement) {
     const response = await fetch("/api/komunitas-belajar/tasks", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: requirement.id, is_active: !requirement.is_active }) });
-    if (response.ok) await load();
+    if (response.ok) await loadTasks();
   }
 
   async function remove(requirement: DashboardRequirement) {
@@ -258,7 +285,7 @@ function TaskManager({ initialRequirements }: { initialRequirements: DashboardRe
   }
 
   return <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-[0_8px_22px_rgba(23,83,158,.05)] sm:p-8">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Manajemen tugas</p><h3 className="mt-2 text-2xl font-extrabold text-[#102d62]">Daftar tugas Kombel</h3><p className="mt-2 text-sm text-[#6683a6]">Atur tugas, metode pengumpulan, dan batas waktunya.</p></div><button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#1264c5] px-4 text-xs font-bold text-white hover:bg-[#0d4e9b]"><Plus size={16} aria-hidden="true" />Tambah tugas</button></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Manajemen tugas</p><h3 className="mt-2 text-2xl font-extrabold text-[#102d62]">Daftar tugas Kombel</h3><p className="mt-2 text-sm text-[#6683a6]">Atur tugas, metode pengumpulan, dan batas waktunya.</p></div><button type="button" onClick={() => { void ensureSessionsLoaded(); setOpen(true); }} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#1264c5] px-4 text-xs font-bold text-white hover:bg-[#0d4e9b]"><Plus size={16} aria-hidden="true" />Tambah tugas</button></div>
     {error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p>}
     <TaskTable requirements={requirements} onEdit={edit} onToggle={toggle} onRemove={remove} />
     <div className="mt-6 grid gap-3">{requirements.length ? requirements.map((requirement) => <article key={requirement.id} className="rounded-xl border border-[#e1eaf4] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h4 className="font-bold text-[#173f70]">{requirement.name}</h4><p className="mt-1 text-sm text-[#6683a6]">{requirement.description || "Tidak ada keterangan tambahan."}</p><p className="mt-2 text-xs font-semibold text-[#536f92]">Metode: {requirement.collection_method === "both" ? "File atau link" : requirement.collection_method === "file" ? "File" : "Link"} · Batas: {requirement.due_at ? new Date(requirement.due_at).toLocaleString("id-ID") : "Tidak dibatasi"}</p></div><button type="button" onClick={() => void toggle(requirement)} className={`rounded-lg px-3 py-2 text-xs font-bold ${requirement.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{requirement.is_active ? "Aktif" : "Nonaktif"}</button></div></article>) : <EmptyState title="Belum ada tugas" description="Tambahkan tugas pertama untuk anggota Kombel." />}</div>
@@ -266,92 +293,172 @@ function TaskManager({ initialRequirements }: { initialRequirements: DashboardRe
   </section>;
 }
 
-function TaskTable({ requirements, onEdit, onToggle, onRemove }: { requirements: DashboardRequirement[]; onEdit: (requirement: DashboardRequirement) => void; onToggle: (requirement: DashboardRequirement) => Promise<void>; onRemove: (requirement: DashboardRequirement) => Promise<void> }) {
-  return requirements.length ? <div className="mt-6 overflow-x-auto rounded-xl border border-[#e1eaf4]"><table className="w-full min-w-[720px] text-left text-sm"><caption className="sr-only">Daftar tugas Kombel</caption><thead className="bg-[#f8fbff] text-xs uppercase tracking-[.08em] text-[#536f92]"><tr><th className="px-4 py-3">Nama tugas</th><th className="px-4 py-3">Metode</th><th className="px-4 py-3">Batas waktu</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Aksi</th></tr></thead><tbody>{requirements.map((requirement) => <tr key={requirement.id} className="border-t border-[#edf2f8] align-top"><td className="px-4 py-4"><p className="font-bold text-[#173f70]">{requirement.name}</p><p className="mt-1 text-xs leading-5 text-[#6683a6]">{requirement.description || "Tidak ada keterangan tambahan."}</p></td><td className="px-4 py-4 text-[#536f92]">{requirement.collection_method === "both" ? "File atau link" : requirement.collection_method === "file" ? "File" : "Link"}</td><td className="px-4 py-4 text-[#536f92]">{requirement.due_at ? new Date(requirement.due_at).toLocaleString("id-ID") : "Tidak dibatasi"}</td><td className="px-4 py-4"><button type="button" onClick={() => void onToggle(requirement)} className={`rounded-lg px-3 py-2 text-xs font-bold ${requirement.is_active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{requirement.is_active ? "Aktif" : "Nonaktif"}</button></td><td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => onEdit(requirement)} className="min-h-9 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">Edit</button><button type="button" onClick={() => void onRemove(requirement)} className="min-h-9 rounded-lg border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50">Hapus</button></div></td></tr>)}</tbody></table></div> : <EmptyState title="Belum ada tugas" description="Tambahkan tugas pertama untuk anggota Kombel." />;
+function TaskTable({
+  requirements,
+  onEdit,
+  onToggle,
+  onRemove,
+}: {
+  requirements: DashboardRequirement[];
+  onEdit: (requirement: DashboardRequirement) => void;
+  onToggle: (requirement: DashboardRequirement) => Promise<void>;
+  onRemove: (requirement: DashboardRequirement) => Promise<void>;
+}) {
+  return requirements.length ? (
+    <div className="mt-6 overflow-x-auto rounded-xl border border-[#e1eaf4]">
+      <table className="w-full min-w-[840px] text-left text-sm border-collapse">
+        <caption className="sr-only">Daftar tugas Kombel</caption>
+        <thead className="bg-[#f8fbff] text-xs font-bold uppercase tracking-[.08em] text-[#536f92] border-b border-[#e1eaf4]">
+          <tr>
+            <th scope="col" className="px-4 py-3">Nama Tugas</th>
+            <th scope="col" className="px-4 py-3">Pertemuan & Materi</th>
+            <th scope="col" className="px-4 py-3">Metode</th>
+            <th scope="col" className="px-4 py-3">Batas Waktu</th>
+            <th scope="col" className="px-4 py-3 text-center">Status</th>
+            <th scope="col" className="px-4 py-3 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#edf2f8]">
+          {requirements.map((requirement) => (
+            <tr key={requirement.id} className="align-top hover:bg-[#fbfdff] transition-colors">
+              <td className="px-4 py-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold text-[#173f70]">{requirement.name}</p>
+                  {requirement.is_locked && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                      <Lock size={10} /> Terkunci (Diverifikasi KS)
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs leading-5 text-[#6683a6]">
+                  {requirement.description || "Tidak ada keterangan tambahan."}
+                </p>
+              </td>
+              <td className="px-4 py-4 text-xs">
+                {requirement.meeting_number ? (
+                  <div>
+                    <span className="font-bold text-[#102d62]">Pertemuan ke-{requirement.meeting_number}</span>
+                    <p className="mt-0.5 text-[#536f92] max-w-xs truncate">{requirement.material_title ?? "-"}</p>
+                  </div>
+                ) : (
+                  <span className="text-[#8ba2bd] italic">Tidak ditautkan</span>
+                )}
+              </td>
+              <td className="px-4 py-4 text-xs font-medium text-[#536f92]">
+                {requirement.collection_method === "both"
+                  ? "File atau link"
+                  : requirement.collection_method === "file"
+                  ? "File"
+                  : "Link"}
+              </td>
+              <td className="px-4 py-4 text-xs text-[#536f92] whitespace-nowrap">
+                {requirement.due_at ? new Date(requirement.due_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "Tidak dibatasi"}
+              </td>
+              <td className="px-4 py-4 text-center">
+                <button
+                  type="button"
+                  disabled={requirement.is_locked}
+                  onClick={() => void onToggle(requirement)}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                    requirement.is_active
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border border-slate-200"
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
+                  title={requirement.is_locked ? "Tugas terkunci karena telah diverifikasi Kepala Sekolah." : undefined}
+                >
+                  {requirement.is_active ? "Aktif" : "Nonaktif"}
+                </button>
+              </td>
+              <td className="px-4 py-4 text-right">
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={requirement.is_locked}
+                    onClick={() => onEdit(requirement)}
+                    className="min-h-9 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={requirement.is_locked ? "Tugas telah diverifikasi Kepala Sekolah sehingga tidak dapat diubah." : "Ubah data tugas"}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    disabled={requirement.is_locked}
+                    onClick={() => void onRemove(requirement)}
+                    className="min-h-9 rounded-lg border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={requirement.is_locked ? "Tugas telah diverifikasi Kepala Sekolah sehingga tidak dapat dihapus." : "Hapus tugas"}
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <EmptyState title="Belum ada tugas" description="Tambahkan tugas pertama untuk anggota Kombel." />
+  );
 }
 
 function TaskList({ requirements }: { requirements: DashboardRequirement[] }) {
   const active = requirements.filter((requirement) => requirement.is_active);
-  return <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-sm sm:p-8"><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Manajemen tugas</p><h3 className="mt-2 text-2xl font-extrabold text-[#102d62]">Tugas Kombel</h3><p className="mt-2 text-sm text-[#6683a6]">Pilih tugas untuk membuka ruang pengumpulan.</p><div className="mt-6 grid gap-3">{active.length ? active.map((requirement) => { const locked = requirement.submission_status === "lengkap"; const content = <><div className="flex items-start justify-between gap-3"><div><h4 className="font-bold text-[#173f70]">{requirement.name}</h4><p className="mt-2 text-sm leading-6 text-[#6683a6]">{requirement.description || "Tidak ada keterangan tambahan."}</p><p className="mt-3 text-xs font-semibold text-[#536f92]">Batas waktu: {requirement.due_at ? new Date(requirement.due_at).toLocaleString("id-ID") : "Tidak dibatasi"}</p></div><ArrowUpRight size={17} className={locked ? "shrink-0 text-[#94a3b8]" : "shrink-0 text-[#1264c5]"} aria-hidden="true" /></div><span className={`mt-4 inline-flex text-xs font-bold ${locked ? "text-[#64748b]" : "text-[#1264c5]"}`}>{locked ? "Sudah diverifikasi KS" : "Buka pengumpulan"}</span></>; return locked ? <article key={requirement.id} className="cursor-not-allowed rounded-xl border border-[#e1eaf4] bg-[#f8fafc] p-4 opacity-80">{content}</article> : <Link key={requirement.id} href={`/komunitas-belajar/ruang/upload_tugas?requirement_id=${requirement.id}`} className="block rounded-xl border border-[#e1eaf4] p-4 transition hover:border-[#1264c5] hover:bg-[#f8fbff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1264c5]">{content}</Link>; }) : <EmptyState title="Belum ada tugas aktif" description="Ketua Kombel belum menambahkan tugas untuk Anda." />}</div></section>;
-}
-
-type SubmissionOverviewRow = {
-  id: string;
-  requirement_id: string;
-  status: string;
-  current_version_no: number;
-  submitted_at: string | null;
-  teacher?: { full_name?: string; role?: string } | null;
-  latest_version?: { collection_method: string; original_name: string | null; external_url: string | null } | null;
-  reviews?: Array<{ reviewer_role: string; status: string; notes: string; reviewed_at: string | null }>;
-};
-
-function SubmissionOverviewV2() {
-  const [rows, setRows] = useState<SubmissionOverviewRow[]>([]);
-  const [requirements, setRequirements] = useState<DashboardRequirement[]>([]);
-  const [selected, setSelected] = useState<SubmissionOverviewRow | null>(null);
-  const [viewer, setViewer] = useState<{ src: string; title: string } | null>(null);
-  const [opening, setOpening] = useState("");
-  const [error, setError] = useState("");
-  const load = useCallback(async () => {
-    const response = await fetch("/api/komunitas-belajar/submissions", { cache: "no-store" });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) setError(body.error ?? "Data pengumpulan gagal dimuat.");
-    else { setRows(body.submissions ?? []); setRequirements(body.requirements ?? []); setError(""); }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    if (!supabaseConfigured()) return;
-    const supabase = createClient();
-    const channel = supabase.channel("kb-submission-overview-live-v2")
-      .on("postgres_changes", { event: "*", schema: "public", table: "kb_submissions" }, () => void load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "kb_reviews" }, () => void load())
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [load]);
-
-  async function openDocument(submission: SubmissionOverviewRow) {
-    setOpening(submission.id);
-    setError("");
-    if (submission.latest_version?.external_url) {
-      window.open(submission.latest_version.external_url, "_blank", "noopener,noreferrer");
-      setOpening("");
-      return;
-    }
-    const response = await fetch(`/api/komunitas-belajar/submissions/${submission.id}/file`, { cache: "no-store" });
-    const body = await response.json().catch(() => ({})) as { url?: string; error?: string; name?: string };
-    if (!response.ok || !body.url) setError(body.error ?? "Dokumen tidak dapat dibuka.");
-    else setViewer({ src: body.url, title: body.name ?? "Dokumen tugas" });
-    setOpening("");
-  }
-
-  function verificationLabel(submission: SubmissionOverviewRow) {
-    const review = submission.reviews?.find((item) => item.reviewer_role === "kepala_sekolah");
-    if (!review || review.status === "menunggu_pemeriksaan") return "Menunggu verifikasi";
-    return review.status === "lengkap" ? "Terverifikasi" : "Perlu perbaikan";
-  }
-
-  function requirementName(submission: SubmissionOverviewRow) {
-    return requirements.find((requirement) => requirement.id === submission.requirement_id)?.name ?? "Tugas komunitas";
-  }
-
-  function requirementDetails(submission: SubmissionOverviewRow) {
-    const requirement = requirements.find((item) => item.id === submission.requirement_id);
-    return { meeting: requirement?.meeting_number ? `Pertemuan ke-${requirement.meeting_number}` : "Belum ditautkan", material: requirement?.material_title ?? "Belum ditautkan" };
-  }
-
-  return <>
+  return (
     <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-sm sm:p-8">
-      <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Pengumpulan tugas</p>
-      <h3 className="mt-2 text-2xl font-extrabold text-[#102d62]">Tugas masuk</h3>
-      <p className="mt-2 text-sm text-[#6683a6]">Buka detail tugas, status verifikasi Kepala Sekolah, dan dokumen yang dikirim guru.</p>
-      {error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p>}
-      {rows.length ? <div className="mt-6 overflow-x-auto rounded-xl border border-[#e1eaf4]"><table className="w-full min-w-[1240px] text-left text-sm"><caption className="sr-only">Daftar tugas masuk</caption><thead className="bg-[#f8fbff] text-xs uppercase tracking-[.08em] text-[#536f92]"><tr><th className="px-4 py-3">Nama guru</th><th className="px-4 py-3">Peran</th><th className="px-4 py-3">Jenis tugas</th><th className="px-4 py-3">Pertemuan</th><th className="px-4 py-3">Materi kegiatan</th><th className="px-4 py-3">Tanggal pengumpulan</th><th className="px-4 py-3">Status tugas</th><th className="px-4 py-3">Verifikasi KS</th><th className="px-4 py-3">Aksi</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t border-[#edf2f8] align-top"><td className="px-4 py-3 font-bold text-[#173f70]">{row.teacher?.full_name ?? "Guru"}</td><td className="px-4 py-3 text-[#536f92]">{roleLabelFromProfile(row.teacher?.role)}</td><td className="px-4 py-3 text-[#536f92]">{requirementName(row)}</td><td className="px-4 py-3 text-[#536f92]">{requirementDetails(row).meeting}</td><td className="px-4 py-3 text-[#536f92]">{requirementDetails(row).material}</td><td className="px-4 py-3 text-[#536f92]">{row.submitted_at ? new Date(row.submitted_at).toLocaleString("id-ID") : "Belum dikumpulkan"}</td><td className="px-4 py-3 font-bold text-[#1264c5]">{statusText(row.status)}</td><td className="px-4 py-3 font-semibold text-[#536f92]">{verificationLabel(row)}</td><td className="px-4 py-3"><button type="button" onClick={() => setSelected(row)} className="min-h-9 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">Detail</button></td></tr>)}</tbody></table></div> : <EmptyState title="Belum ada tugas masuk" description="Pengumpulan anggota akan tampil di sini." />}
+      <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Manajemen tugas</p>
+      <h3 className="mt-2 text-2xl font-extrabold text-[#102d62]">Tugas Kombel</h3>
+      <p className="mt-2 text-sm text-[#6683a6]">Pilih tugas untuk membuka ruang pengumpulan.</p>
+      <div className="mt-6 grid gap-3">
+        {active.length ? (
+          active.map((requirement) => {
+            const locked = requirement.submission_status === "lengkap";
+            const content = (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold text-[#1970d2]">
+                      {requirement.meeting_number ? `Pertemuan ke-${requirement.meeting_number}` : "Tugas Kombel"}
+                      {requirement.material_title ? ` · ${requirement.material_title}` : ""}
+                    </span>
+                    <h4 className="mt-0.5 font-bold text-[#173f70]">{requirement.name}</h4>
+                    <p className="mt-2 text-sm leading-6 text-[#6683a6]">
+                      {requirement.description || "Tidak ada keterangan tambahan."}
+                    </p>
+                    <p className="mt-3 text-xs font-semibold text-[#536f92]">
+                      Batas waktu:{" "}
+                      {requirement.due_at
+                        ? new Date(requirement.due_at).toLocaleString("id-ID")
+                        : "Tidak dibatasi"}
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    className={locked ? "shrink-0 text-[#94a3b8]" : "shrink-0 text-[#1264c5]"}
+                    aria-hidden="true"
+                  />
+                </div>
+                <span className={`mt-4 inline-flex text-xs font-bold ${locked ? "text-[#64748b]" : "text-[#1264c5]"}`}>
+                  {locked ? "Lihat tugas dan status" : "Buka pengumpulan"}
+                </span>
+              </>
+            );
+            return <Link
+              key={requirement.id}
+              href={`/komunitas-belajar/ruang/upload_tugas?requirement_id=${requirement.id}`}
+              className={`block rounded-xl border border-[#e1eaf4] p-4 transition hover:border-[#1264c5] hover:bg-[#f8fbff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1264c5] ${locked ? "bg-[#f8fafc]" : ""}`}
+            >
+              {content}
+            </Link>;
+          })
+        ) : (
+          <EmptyState title="Belum ada tugas aktif" description="Ketua Kombel belum menambahkan tugas untuk Anda." />
+        )}
+      </div>
     </section>
-    {selected && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#071d45]/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }}><div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="submission-detail-title"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Detail pengumpulan</p><h4 id="submission-detail-title" className="mt-1 text-2xl font-extrabold text-[#102d62]">{requirementName(selected)}</h4></div><button type="button" onClick={() => setSelected(null)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-sm font-bold text-[#536f92]">Tutup</button></div><dl className="mt-6 grid gap-4 rounded-xl bg-[#f8fbff] p-5 sm:grid-cols-2"><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#6683a6]">Nama pengirim</dt><dd className="mt-1 font-bold text-[#173f70]">{selected.teacher?.full_name ?? "Guru"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#6683a6]">Peran</dt><dd className="mt-1 text-[#536f92]">{roleLabelFromProfile(selected.teacher?.role)}</dd></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#6683a6]">Pertemuan</dt><dd className="mt-1 text-[#536f92]">{requirementDetails(selected).meeting}</dd></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#6683a6]">Materi kegiatan</dt><dd className="mt-1 text-[#536f92]">{requirementDetails(selected).material}</dd></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#6683a6]">Dikirim</dt><dd className="mt-1 text-[#536f92]">{selected.submitted_at ? new Date(selected.submitted_at).toLocaleString("id-ID") : "Belum dikumpulkan"}</dd></div><div><dt className="text-xs font-bold uppercase tracking-[.08em] text-[#6683a6]">Verifikasi KS</dt><dd className="mt-1 font-bold text-[#1264c5]">{verificationLabel(selected)}</dd></div></dl>{selected.reviews?.find((review) => review.reviewer_role === "kepala_sekolah")?.notes && <p className="mt-4 rounded-lg border border-[#dbe6f5] px-4 py-3 text-sm leading-6 text-[#536f92]">Catatan KS: {selected.reviews.find((review) => review.reviewer_role === "kepala_sekolah")?.notes}</p>}<div className="mt-6 flex flex-wrap gap-3"><button type="button" disabled={!selected.latest_version || opening === selected.id} onClick={() => void openDocument(selected)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#1264c5] px-4 text-sm font-bold text-white hover:bg-[#0d4e9b] disabled:cursor-not-allowed disabled:opacity-60">{selected.latest_version?.external_url ? "Buka link" : "Buka/unduh file"}</button>{selected.latest_version?.original_name && <span className="self-center text-xs text-[#6683a6]">{selected.latest_version.original_name}</span>}</div></div></div>}
-    {viewer && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#071d45]/65 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setViewer(null); }}><div className="flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-label={viewer.title}><div className="flex items-center justify-between gap-4 border-b border-[#e1eaf4] px-5 py-4"><p className="truncate text-sm font-bold text-[#173f70]">{viewer.title}</p><button type="button" onClick={() => setViewer(null)} className="min-h-9 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#536f92]">Tutup</button></div><iframe title={viewer.title} src={viewer.src} className="min-h-0 flex-1 bg-[#f8fbff]" /></div></div>}
-  </>;
+  );
 }
+
+
 
 function SubmissionOverview() {
   const [rows, setRows] = useState<Array<{ id: string; requirement_id: string; status: string; submitted_at: string | null; teacher?: { full_name?: string; role?: string } | null }>>([]);
@@ -388,18 +495,24 @@ function ResourceWorkspace({ resource, menu, canManage }: { resource: (typeof re
   useEffect(() => {
     const requestedSessionId = new URLSearchParams(window.location.search).get("session_id") ?? "";
     setSessionId(requestedSessionId);
-    void Promise.all([
-      fetch(`/api/komunitas-belajar/content?menu=${menu}`, { cache: "no-store" }).then(async (response) => {
+    fetch(`/api/komunitas-belajar/content?menu=${menu}`, { cache: "no-store" })
+      .then(async (response) => {
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error);
         setEntries(result.entries ?? []);
-      }),
-      fetch("/api/komunitas-belajar/attendance", { cache: "no-store" }).then(async (response) => {
-        const result = await response.json().catch(() => ({}));
-        if (response.ok) setSessions(result.sessions ?? []);
-      }),
-    ]).catch((reason: Error) => setError(reason.message || "Konten gagal dimuat.")).finally(() => setLoading(false));
+      })
+      .catch((reason: Error) => setError(reason.message || "Konten gagal dimuat."))
+      .finally(() => setLoading(false));
   }, [menu]);
+
+  async function ensureSessionsLoaded() {
+    if (sessions.length) return;
+    const res = await fetch("/api/komunitas-belajar/attendance", { cache: "no-store" });
+    if (res.ok) {
+      const result = await res.json().catch(() => ({}));
+      setSessions(result.sessions ?? []);
+    }
+  }
 
   function resetForm() {
     setEditingId(null);
@@ -683,7 +796,7 @@ function AttendanceWorkspace({ canCreate, canMark, canExport, canSeeDetails, can
     const alpa = statuses.filter((status) => status === "alpa").length;
     return { participant, hadir, sakit, izin, alpa, percentage: statuses.length ? Math.round((hadir / statuses.length) * 100) : 0 };
   });
-  return <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-[0_8px_22px_rgba(23,83,158,.05)] sm:p-8"><div className="flex items-start gap-4"><CalendarCheck2 size={22} className="mt-1 text-[#1264c5]" aria-hidden="true" /><div><h3 className="text-xl font-extrabold text-[#102d62]">Daftar hadir per pertemuan</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-[#6683a6]">Setiap presensi wajib terhubung dengan materi kegiatan. Anggota mengisi kehadiran menggunakan identitas akun yang sedang login.</p></div></div>{canCreate && <><button type="button" onClick={() => setCreateModalOpen(true)} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#1264c5] px-4 text-sm font-bold text-white hover:bg-[#0d4e9b]"><Plus size={17} aria-hidden="true" />Tambah daftar hadir</button>{createModalOpen && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#071d45]/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCreateModalOpen(false); }}><div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="attendance-modal-title"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Pertemuan kombel</p><h4 id="attendance-modal-title" className="mt-1 text-2xl font-extrabold text-[#102d62]">Tambah daftar hadir</h4></div><button type="button" onClick={() => setCreateModalOpen(false)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-sm font-bold text-[#536f92]">Tutup</button></div><form onSubmit={createSession} className="mt-6 grid gap-4 rounded-xl bg-[#f8fbff] p-5 sm:grid-cols-2"><label className="block sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#34577f]">Pertemuan / materi kegiatan</span><select required value={materialId} onChange={(event) => setMaterialId(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm"><option value="">Pilih materi kegiatan</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.title}</option>)}</select><span className="mt-1 block text-xs text-[#6683a6]">Judul sesi akan otomatis menjadi “Daftar Hadir - judul materi”.</span></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Tanggal pelaksanaan</span><input required type="date" value={eventDate} onChange={(event) => setEventDate(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" /></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Tempat</span><input value={location} onChange={(event) => setLocation(event.target.value)} maxLength={180} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" placeholder="Ruang pertemuan" /></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Mulai aktif</span><input required type="datetime-local" value={activeFrom} onChange={(event) => setActiveFrom(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" /></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Batas pengisian</span><input required type="datetime-local" value={activeUntil} onChange={(event) => setActiveUntil(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" /></label><label className="block sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#34577f]">Catatan kegiatan</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} className="w-full rounded-lg border border-[#bfd2e8] bg-white px-3 py-3 text-sm" placeholder="Agenda atau catatan singkat" /></label><button type="submit" disabled={busy || !materials.length} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#1264c5] px-4 text-sm font-bold text-white hover:bg-[#0d4e9b] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"><Plus size={17} aria-hidden="true" />{busy ? "Menyimpan..." : "Buat daftar hadir"}</button>{!materials.length && <p className="sm:col-span-2 text-xs font-semibold text-amber-700">Tambahkan Materi Kegiatan terlebih dahulu agar sesi presensi dapat dibuat.</p>}</form></div></div>}</>}{error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p>}{message && <p role="status" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">{message}</p>}<div className="mt-6 grid gap-3 rounded-xl border border-[#e1eaf4] bg-[#f8fbff] p-4 md:grid-cols-[1fr_180px_160px_auto]"><label className="block"><span className="mb-2 block text-xs font-bold text-[#34577f]">Cari pertemuan</span><input value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" placeholder="Judul materi atau tanggal" /></label><label className="block"><span className="mb-2 block text-xs font-bold text-[#34577f]">Bulan</span><select value={month} onChange={(event) => setMonth(event.target.value)} className="h-10 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm"><option value="all">Semua bulan</option>{["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"].map((name, index) => <option key={name} value={String(index + 1)}>{name}</option>)}</select></label><label className="block"><span className="mb-2 block text-xs font-bold text-[#34577f]">Tahun</span><select value={year} onChange={(event) => setYear(event.target.value)} className="h-10 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm"><option value="all">Semua tahun</option>{years.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>{canExport && <button type="button" onClick={downloadAttendance} className="inline-flex min-h-10 items-end justify-center rounded-lg bg-[#1264c5] px-4 py-2 text-xs font-bold text-white hover:bg-[#0d4e9b]">Unduh .xlsx</button>}</div>{loading ? <div className="mt-6"><StatePanel title="Memuat daftar hadir" description="Sesi kegiatan sedang dimuat dari server." /></div> : filteredSessions.length ? <div className="mt-6 overflow-x-auto rounded-xl border border-[#e1eaf4]"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-[#f8fbff] text-xs uppercase tracking-[.08em] text-[#536f92]"><tr><th className="px-4 py-3 font-bold">No.</th><th className="px-4 py-3 font-bold">Pertemuan</th><th className="px-4 py-3 font-bold">Tanggal</th><th className="px-4 py-3 font-bold">Materi kegiatan</th><th className="px-4 py-3 font-bold">Kehadiran H / S / I / TH</th><th className="px-4 py-3 font-bold">Aksi</th></tr></thead><tbody>{filteredSessions.map((session, index) => { const total = counts(session); const expanded = expandedId === session.id; const ownRecord = session.records.find((record) => record.profile_id === currentProfileId); const draft = draftFor(session); return <><tr key={session.id} className="border-t border-[#edf2f8] align-top"><td className="px-4 py-4 font-bold text-[#1264c5]">{index + 1}</td><td className="px-4 py-4"><p className="font-bold text-[#173f70]">{session.title}</p><p className="mt-1 text-xs text-[#6683a6]">{session.active_from && session.active_until ? new Date(session.active_from).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) + " sampai " + new Date(session.active_until).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "Waktu aktif belum diatur"}</p></td><td className="px-4 py-4 text-[#536f92]">{new Date(session.event_date + "T00:00:00").toLocaleDateString("id-ID", { dateStyle: "medium" })}</td><td className="px-4 py-4 text-[#536f92]">{session.material_title}</td><td className="px-4 py-4 whitespace-nowrap font-semibold text-[#34577f]"><span className="text-emerald-700">H: {total.hadir}</span><br /><span className="text-sky-700">S: {total.sakit}</span><br /><span className="text-amber-700">I: {total.izin}</span><br /><span className="text-slate-600">TH: {total.alpa}</span></td><td className="px-4 py-4">{canSeeDetails ? <button type="button" onClick={() => setExpandedId(expanded ? null : session.id)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">{expanded ? "Tutup detail" : "Lihat detail"}</button> : <button type="button" disabled={busy || Boolean(ownRecord)} onClick={() => setExpandedId(session.id)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff] disabled:cursor-not-allowed disabled:opacity-60">{ownRecord ? "Sudah diisi" : "Isi kehadiran saya"}</button>}</td></tr>{expanded && <tr key={session.id + "-detail"}><td colSpan={6} className="border-t border-[#edf2f8] bg-[#f8fbff] px-4 py-4"><div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">{canSeeDetails && (<div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#1970d2]">Nama guru pada pertemuan ini</p>{session.records.length ? <div className="mt-3 space-y-2">{session.records.map((record) => <div key={record.id} className="flex flex-col gap-2 rounded-lg border border-[#e1eaf4] bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold text-[#173f70]">{record.profile_name}</p><p className="mt-1 text-xs text-[#6683a6]">{record.profile?.login_identifier ?? "NIP/NUPTK belum diisi"} · {record.profile?.teacher_type ?? "Guru"}{record.profile?.teaching_grade ? " · Kelas " + record.profile.teaching_grade : ""}</p></div>{canManage ? <div className="flex flex-wrap items-center gap-2"><select value={managedDraftFor(record).status} onChange={(event) => updateManagedDraft(record, "status", event.target.value)} className="h-9 rounded-lg border border-[#bfd2e8] px-2 text-xs"><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpa">Alpa</option></select><button type="button" disabled={busy} onClick={() => void saveManagedRecord(session.id, record)} className="min-h-9 rounded-lg bg-[#1264c5] px-2 text-[11px] font-bold text-white disabled:opacity-60">Simpan</button><button type="button" disabled={busy} onClick={() => void deleteManagedRecord(session.id, record.profile_id)} className="min-h-9 rounded-lg border border-red-200 px-2 text-[11px] font-bold text-red-700 disabled:opacity-60">Hapus</button></div> : <span className="w-fit rounded-md bg-[#edf4ff] px-2 py-1 text-xs font-bold text-[#1264c5]">{roleLabelFromProfile(record.profile?.role)}: {attendanceLabel(record.status)}</span>}</div>)}</div> : <p className="mt-3 text-sm text-[#6683a6]">Belum ada guru yang mengisi.</p>}</div>)}{canMark && (canManage || !ownRecord) && <div className="rounded-xl border border-[#dbe6f5] bg-white p-4"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#1970d2]">Isi kehadiran saya</p><select value={draft.status} onChange={(event) => updateDraft(session.id, "status", event.target.value)} className="mt-3 h-10 w-full rounded-lg border border-[#bfd2e8] px-3 text-sm"><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpa">Alpa</option></select>{draft.status === "izin" && <textarea value={draft.note} onChange={(event) => updateDraft(session.id, "note", event.target.value)} maxLength={500} rows={3} className="mt-3 w-full rounded-lg border border-[#bfd2e8] px-3 py-2 text-sm" placeholder="Keterangan izin, misalnya Dinas Luar" />}{ownRecord && <p className="mt-3 text-xs text-[#6683a6]">Terakhir diisi {new Date(ownRecord.marked_at).toLocaleString("id-ID")}</p>}<button type="button" disabled={busy} onClick={() => void markAttendance(session.id)} className="mt-3 min-h-10 w-full rounded-lg bg-[#1264c5] px-3 text-xs font-bold text-white hover:bg-[#0d4e9b] disabled:cursor-not-allowed disabled:opacity-60">{ownRecord ? "Perbarui kehadiran" : "Simpan kehadiran"}</button></div>}</div><div className="mt-4 flex flex-wrap gap-2"><Link href={"/komunitas-belajar/ruang/materi?session_id=" + (session.material_entry_id ?? "")} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Materi kegiatan</Link><Link href={"/komunitas-belajar/ruang/dokumentasi?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Dokumentasi</Link><Link href={"/komunitas-belajar/ruang/praktik_baik?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Praktik baik</Link><Link href={"/komunitas-belajar/ruang/forum?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Forum terkait</Link></div></td></tr>}</>; })}</tbody></table></div> : <EmptyState title="Belum ada sesi kegiatan" description={canCreate ? "Buat sesi pertama setelah Materi Kegiatan tersedia." : "Sesi akan muncul setelah Ketua Kombel membuat kegiatan."} />}{!loading && filteredSessions.length > 0 && <section className="mt-6 rounded-xl border border-[#e1eaf4] p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#1970d2]">Akumulasi anggota</p><h4 className="mt-1 text-lg font-extrabold text-[#173f70]">Persentase kehadiran per anggota</h4></div><p className="text-xs text-[#6683a6]">Dihitung dari pertemuan yang sedang difilter.</p></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="border-b border-[#edf2f8] text-xs uppercase tracking-[.08em] text-[#536f92]"><tr><th className="px-3 py-3 font-bold">Nama</th><th className="px-3 py-3 font-bold">Peran</th><th className="px-3 py-3 font-bold">Hadir</th><th className="px-3 py-3 font-bold">Izin</th><th className="px-3 py-3 font-bold">Sakit</th><th className="px-3 py-3 font-bold">TH</th><th className="px-3 py-3 font-bold">Persentase</th></tr></thead><tbody>{attendanceSummary.map((item) => <tr key={item.participant.id} className="border-t border-[#edf2f8]"><td className="px-3 py-3 font-bold text-[#173f70]">{item.participant.full_name}<span className="mt-1 block text-xs font-normal text-[#6683a6]">{item.participant.login_identifier ?? "NIP/NUPTK belum diisi"}</span></td><td className="px-3 py-3 text-[#536f92]">{roleLabelFromProfile(item.participant.role)}{item.participant.community_position ? " · " + item.participant.community_position : ""}</td><td className="px-3 py-3 font-semibold text-emerald-700">{item.hadir}</td><td className="px-3 py-3 font-semibold text-amber-700">{item.izin}</td><td className="px-3 py-3 font-semibold text-sky-700">{item.sakit}</td><td className="px-3 py-3 font-semibold text-slate-600">{item.alpa}</td><td className="px-3 py-3 font-extrabold text-[#1264c5]">{item.percentage}%</td></tr>)}</tbody></table></div></section>}</section>;
+  return <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-[0_8px_22px_rgba(23,83,158,.05)] sm:p-8"><div className="flex items-start gap-4"><CalendarCheck2 size={22} className="mt-1 text-[#1264c5]" aria-hidden="true" /><div><h3 className="text-xl font-extrabold text-[#102d62]">Daftar hadir per pertemuan</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-[#6683a6]">Setiap presensi wajib terhubung dengan materi kegiatan. Anggota mengisi kehadiran menggunakan identitas akun yang sedang login.</p></div></div>{canCreate && <><button type="button" onClick={() => setCreateModalOpen(true)} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#1264c5] px-4 text-sm font-bold text-white hover:bg-[#0d4e9b]"><Plus size={17} aria-hidden="true" />Tambah daftar hadir</button>{createModalOpen && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#071d45]/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCreateModalOpen(false); }}><div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="attendance-modal-title"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">Pertemuan kombel</p><h4 id="attendance-modal-title" className="mt-1 text-2xl font-extrabold text-[#102d62]">Tambah daftar hadir</h4></div><button type="button" onClick={() => setCreateModalOpen(false)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-sm font-bold text-[#536f92]">Tutup</button></div><form onSubmit={createSession} className="mt-6 grid gap-4 rounded-xl bg-[#f8fbff] p-5 sm:grid-cols-2"><label className="block sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#34577f]">Pertemuan / materi kegiatan</span><select required value={materialId} onChange={(event) => setMaterialId(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm"><option value="">Pilih materi kegiatan</option>{materials.map((material) => <option key={material.id} value={material.id}>{material.title}</option>)}</select><span className="mt-1 block text-xs text-[#6683a6]">Judul sesi akan otomatis menjadi “Daftar Hadir - judul materi”.</span></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Tanggal pelaksanaan</span><input required type="date" value={eventDate} onChange={(event) => setEventDate(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" /></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Tempat</span><input value={location} onChange={(event) => setLocation(event.target.value)} maxLength={180} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" placeholder="Ruang pertemuan" /></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Mulai aktif</span><input required type="datetime-local" value={activeFrom} onChange={(event) => setActiveFrom(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" /></label><label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Batas pengisian</span><input required type="datetime-local" value={activeUntil} onChange={(event) => setActiveUntil(event.target.value)} className="h-11 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" /></label><label className="block sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#34577f]">Catatan kegiatan</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={1000} rows={3} className="w-full rounded-lg border border-[#bfd2e8] bg-white px-3 py-3 text-sm" placeholder="Agenda atau catatan singkat" /></label><button type="submit" disabled={busy || !materials.length} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#1264c5] px-4 text-sm font-bold text-white hover:bg-[#0d4e9b] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"><Plus size={17} aria-hidden="true" />{busy ? "Menyimpan..." : "Buat daftar hadir"}</button>{!materials.length && <p className="sm:col-span-2 text-xs font-semibold text-amber-700">Tambahkan Materi Kegiatan terlebih dahulu agar sesi presensi dapat dibuat.</p>}</form></div></div>}</>}{error && <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">{error}</p>}{message && <p role="status" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">{message}</p>}<div className="mt-6 grid gap-3 rounded-xl border border-[#e1eaf4] bg-[#f8fbff] p-4 md:grid-cols-[1fr_180px_160px_auto]"><label className="block"><span className="mb-2 block text-xs font-bold text-[#34577f]">Cari pertemuan</span><input value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm" placeholder="Judul materi atau tanggal" /></label><label className="block"><span className="mb-2 block text-xs font-bold text-[#34577f]">Bulan</span><select value={month} onChange={(event) => setMonth(event.target.value)} className="h-10 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm"><option value="all">Semua bulan</option>{["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"].map((name, index) => <option key={name} value={String(index + 1)}>{name}</option>)}</select></label><label className="block"><span className="mb-2 block text-xs font-bold text-[#34577f]">Tahun</span><select value={year} onChange={(event) => setYear(event.target.value)} className="h-10 w-full rounded-lg border border-[#bfd2e8] bg-white px-3 text-sm"><option value="all">Semua tahun</option>{years.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>{canExport && <button type="button" onClick={downloadAttendance} className="inline-flex min-h-10 items-end justify-center rounded-lg bg-[#1264c5] px-4 py-2 text-xs font-bold text-white hover:bg-[#0d4e9b]">Unduh .xlsx</button>}</div>{loading ? <div className="mt-6"><StatePanel title="Memuat daftar hadir" description="Sesi kegiatan sedang dimuat dari server." /></div> : filteredSessions.length ? <div className="mt-6 overflow-x-auto rounded-xl border border-[#e1eaf4]"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-[#f8fbff] text-xs uppercase tracking-[.08em] text-[#536f92]"><tr><th className="px-4 py-3 font-bold">No.</th><th className="px-4 py-3 font-bold">Pertemuan</th><th className="px-4 py-3 font-bold">Tanggal</th><th className="px-4 py-3 font-bold">Materi kegiatan</th><th className="px-4 py-3 font-bold">Kehadiran H / S / I / TH</th><th className="px-4 py-3 font-bold">Aksi</th></tr></thead><tbody>{filteredSessions.map((session, index) => { const total = counts(session); const expanded = expandedId === session.id; const ownRecord = session.records.find((record) => record.profile_id === currentProfileId); const draft = draftFor(session); return <><tr key={session.id} className="border-t border-[#edf2f8] align-top"><td className="px-4 py-4 font-bold text-[#1264c5]">{index + 1}</td><td className="px-4 py-4"><p className="font-bold text-[#173f70]">{session.title}</p><p className="mt-1 text-xs text-[#6683a6]">{session.active_from && session.active_until ? new Date(session.active_from).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) + " sampai " + new Date(session.active_until).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "Waktu aktif belum diatur"}</p></td><td className="px-4 py-4 text-[#536f92]">{new Date(session.event_date + "T00:00:00").toLocaleDateString("id-ID", { dateStyle: "medium" })}</td><td className="px-4 py-4 text-[#536f92]">{session.material_title}</td><td className="px-4 py-4 whitespace-nowrap font-semibold text-[#34577f]"><span className="text-emerald-700">H: {total.hadir}</span><br /><span className="text-sky-700">S: {total.sakit}</span><br /><span className="text-amber-700">I: {total.izin}</span><br /><span className="text-slate-600">TH: {total.alpa}</span></td><td className="px-4 py-4">{canSeeDetails ? <button type="button" onClick={() => setExpandedId(expanded ? null : session.id)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">{expanded ? "Tutup detail" : "Lihat detail"}</button> : <button type="button" disabled={busy || Boolean(ownRecord)} onClick={() => setExpandedId(session.id)} className="min-h-10 rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff] disabled:cursor-not-allowed disabled:opacity-60">{ownRecord ? "Sudah diisi" : "Isi kehadiran saya"}</button>}</td></tr>{expanded && <tr key={session.id + "-detail"}><td colSpan={6} className="border-t border-[#edf2f8] bg-[#f8fbff] px-4 py-4"><div className={`flex flex-col gap-4 ${canSeeDetails ? "lg:flex-row lg:items-start" : "sm:flex-row sm:items-start sm:justify-between"}`}>{canSeeDetails ? (<div className="flex-1 min-w-0"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#1970d2]">Nama guru pada pertemuan ini</p>{session.records.length ? <div className="mt-3 space-y-2">{session.records.map((record) => <div key={record.id} className="flex flex-col gap-2 rounded-lg border border-[#e1eaf4] bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold text-[#173f70]">{record.profile_name}</p><p className="mt-1 text-xs text-[#6683a6]">{record.profile?.login_identifier ?? "NIP/NUPTK belum diisi"} · {record.profile?.teacher_type ?? "Guru"}{record.profile?.teaching_grade ? " · Kelas " + record.profile.teaching_grade : ""}</p></div>{canManage ? <div className="flex flex-wrap items-center gap-2"><select value={managedDraftFor(record).status} onChange={(event) => updateManagedDraft(record, "status", event.target.value)} className="h-9 rounded-lg border border-[#bfd2e8] px-2 text-xs"><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpa">Alpa</option></select><button type="button" disabled={busy} onClick={() => void saveManagedRecord(session.id, record)} className="min-h-9 rounded-lg bg-[#1264c5] px-2 text-[11px] font-bold text-white disabled:opacity-60">Simpan</button><button type="button" disabled={busy} onClick={() => void deleteManagedRecord(session.id, record.profile_id)} className="min-h-9 rounded-lg border border-red-200 px-2 text-[11px] font-bold text-red-700 disabled:opacity-60">Hapus</button></div> : <span className="w-fit rounded-md bg-[#edf4ff] px-2 py-1 text-xs font-bold text-[#1264c5]">{roleLabelFromProfile(record.profile?.role)}: {attendanceLabel(record.status)}</span>}</div>)}</div> : <p className="mt-3 text-sm text-[#6683a6]">Belum ada guru yang mengisi.</p>}</div>) : (<div className="flex flex-wrap items-center gap-2"><Link href={"/komunitas-belajar/ruang/materi?session_id=" + (session.material_entry_id ?? "")} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] bg-white px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">Materi kegiatan</Link><Link href={"/komunitas-belajar/ruang/dokumentasi?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] bg-white px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">Dokumentasi</Link><Link href={"/komunitas-belajar/ruang/praktik_baik?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] bg-white px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">Praktik baik</Link><Link href={"/komunitas-belajar/ruang/forum?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] bg-white px-3 text-xs font-bold text-[#1264c5] hover:bg-[#edf4ff]">Forum terkait</Link></div>)}{canMark && (canManage || !ownRecord) && <div className="w-full sm:w-[220px] shrink-0 rounded-xl border border-[#dbe6f5] bg-white p-3.5 shadow-sm sm:ml-auto"><div className="flex items-center justify-between gap-2 border-b border-[#edf2f8] pb-2"><p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#1970d2]">Isi kehadiran saya</p><button type="button" onClick={() => setExpandedId(null)} className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[#6683a6] transition hover:bg-[#edf4ff] hover:text-[#1264c5]" aria-label="Tutup form kehadiran" title="Tutup"><X size={15} /></button></div><select value={draft.status} onChange={(event) => updateDraft(session.id, "status", event.target.value)} className="mt-2.5 h-9 w-full rounded-lg border border-[#bfd2e8] bg-white px-2.5 text-xs font-semibold text-[#173f70]"><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="sakit">Sakit</option><option value="alpa">Alpa</option></select>{draft.status === "izin" && <textarea value={draft.note} onChange={(event) => updateDraft(session.id, "note", event.target.value)} maxLength={500} rows={2} className="mt-2.5 w-full rounded-lg border border-[#bfd2e8] bg-white px-2.5 py-1.5 text-xs text-[#173f70]" placeholder="Keterangan izin..." />}{ownRecord && <p className="mt-2 text-[10px] text-[#6683a6]">Terakhir diisi {new Date(ownRecord.marked_at).toLocaleString("id-ID")}</p>}<button type="button" disabled={busy} onClick={() => void markAttendance(session.id)} className="mt-2.5 min-h-9 w-full rounded-lg bg-[#1264c5] px-2.5 text-xs font-bold text-white transition hover:bg-[#0d4e9b] disabled:cursor-not-allowed disabled:opacity-60">{ownRecord ? "Perbarui" : "Simpan kehadiran"}</button></div>}</div>{canSeeDetails && <div className="mt-4 flex flex-wrap gap-2"><Link href={"/komunitas-belajar/ruang/materi?session_id=" + (session.material_entry_id ?? "")} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Materi kegiatan</Link><Link href={"/komunitas-belajar/ruang/dokumentasi?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Dokumentasi</Link><Link href={"/komunitas-belajar/ruang/praktik_baik?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Praktik baik</Link><Link href={"/komunitas-belajar/ruang/forum?session_id=" + session.id} className="inline-flex min-h-9 items-center rounded-lg border border-[#bfd2e8] px-3 text-xs font-bold text-[#1264c5] hover:bg-white">Forum terkait</Link></div>}</td></tr>}</>; })}</tbody></table></div> : <EmptyState title="Belum ada sesi kegiatan" description={canCreate ? "Buat sesi pertama setelah Materi Kegiatan tersedia." : "Sesi akan muncul setelah Ketua Kombel membuat kegiatan."} />}{!loading && filteredSessions.length > 0 && <section className="mt-6 rounded-xl border border-[#e1eaf4] p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.12em] text-[#1970d2]">Akumulasi anggota</p><h4 className="mt-1 text-lg font-extrabold text-[#173f70]">Persentase kehadiran per anggota</h4></div><p className="text-xs text-[#6683a6]">Dihitung dari pertemuan yang sedang difilter.</p></div><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="border-b border-[#edf2f8] text-xs uppercase tracking-[.08em] text-[#536f92]"><tr><th className="px-3 py-3 font-bold">Nama</th><th className="px-3 py-3 font-bold">Peran</th><th className="px-3 py-3 font-bold">Hadir</th><th className="px-3 py-3 font-bold">Izin</th><th className="px-3 py-3 font-bold">Sakit</th><th className="px-3 py-3 font-bold">TH</th><th className="px-3 py-3 font-bold">Persentase</th></tr></thead><tbody>{attendanceSummary.map((item) => <tr key={item.participant.id} className="border-t border-[#edf2f8]"><td className="px-3 py-3 font-bold text-[#173f70]">{item.participant.full_name}<span className="mt-1 block text-xs font-normal text-[#6683a6]">{item.participant.login_identifier ?? "NIP/NUPTK belum diisi"}</span></td><td className="px-3 py-3 text-[#536f92]">{roleLabelFromProfile(item.participant.role)}{item.participant.community_position ? " · " + item.participant.community_position : ""}</td><td className="px-3 py-3 font-semibold text-emerald-700">{item.hadir}</td><td className="px-3 py-3 font-semibold text-amber-700">{item.izin}</td><td className="px-3 py-3 font-semibold text-sky-700">{item.sakit}</td><td className="px-3 py-3 font-semibold text-slate-600">{item.alpa}</td><td className="px-3 py-3 font-extrabold text-[#1264c5]">{item.percentage}%</td></tr>)}</tbody></table></div></section>}</section>;
 }
 function attendanceLabel(status: string) { return status === "izin" ? "Izin" : status === "sakit" ? "Sakit" : status === "alpa" ? "Alpa" : "Hadir"; }
 
@@ -707,7 +820,46 @@ function attendanceXlsx(rows: string[][]) {
   ]);
 }
 
-function ProfileWorkspace({ profile, view, data }: { profile: KbProfile; view: DashboardView; data: RoleDashboardData }) { const maskedIdentity = profile.login_identifier ? `${profile.login_identifier.slice(0, 4)}${"X".repeat(Math.max(profile.login_identifier.length - 4, 0))}` : "Belum diatur"; const roleSpecific = profile.role === "guru" ? [["Guru Kelas / Mapel", profile.teacher_type ?? "Belum diatur"], ...(profile.teacher_type === "Guru Mapel" ? [["Mata pelajaran", profile.teaching_subject ?? "PAIBP"], ["Kelas", "Kelas 1–6"]] : [["Kelas", profile.teaching_grade ? `Kelas ${profile.teaching_grade}` : "Belum diatur"]])] : []; return <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-[0_8px_22px_rgba(23,83,158,.05)] sm:p-8"><div className="flex items-start gap-4"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1264c5]"><UserRound size={23} aria-hidden="true" /></span><div><h3 className="text-xl font-extrabold text-[#102d62]">{profile.full_name}</h3><p className="mt-1 text-sm text-[#6683a6]">{roleLabel(view)}</p></div></div><div className="mt-6 grid gap-3 sm:grid-cols-2">{[["NIP/NIK", maskedIdentity], ...roleSpecific, ["Status", profile.is_active ? "Aktif" : "Nonaktif"]].map(([label, value]) => <div key={label} className="rounded-xl border border-[#e1eaf4] p-4"><p className="text-xs text-[#6683a6]">{label}</p><p className="mt-2 font-bold text-[#173f70]">{value}</p></div>)}</div><Link href="/komunitas-belajar/ganti-password" className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1264c5] px-4 text-sm font-bold text-[#1264c5] hover:bg-[#edf4ff]">Ganti password <ArrowUpRight size={16} aria-hidden="true" /></Link></section>; }
+function ProfileWorkspace({ profile, view, data }: { profile: KbProfile; view: DashboardView; data: RoleDashboardData }) {
+  const [securityModalOpen, setSecurityModalOpen] = useState(false);
+  const maskedIdentity = profile.login_identifier ? `${profile.login_identifier.slice(0, 4)}${"X".repeat(Math.max(profile.login_identifier.length - 4, 0))}` : "Belum diatur";
+  const roleSpecific = profile.role === "guru" ? [["Guru Kelas / Mapel", profile.teacher_type ?? "Belum diatur"], ...(profile.teacher_type === "Guru Mapel" ? [["Mata pelajaran", profile.teaching_subject ?? "PAIBP"], ["Kelas", "Kelas 1–6"]] : [["Kelas", profile.teaching_grade ? `Kelas ${profile.teaching_grade}` : "Belum diatur"]])] : [];
+
+  return (
+    <>
+      <section className="rounded-2xl border border-[#dbe6f5] bg-white p-6 shadow-[0_8px_22px_rgba(23,83,158,.05)] sm:p-8">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1264c5]"><UserRound size={23} aria-hidden="true" /></span>
+          <div>
+            <h3 className="text-xl font-extrabold text-[#102d62]">{profile.full_name}</h3>
+            <p className="mt-1 text-sm text-[#6683a6]">{roleLabel(view)}</p>
+          </div>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {[["NIP/NIK", maskedIdentity], ...roleSpecific, ["Status", profile.is_active ? "Aktif" : "Nonaktif"]].map(([label, value]) => (
+            <div key={label} className="rounded-xl border border-[#e1eaf4] p-4">
+              <p className="text-xs text-[#6683a6]">{label}</p>
+              <p className="mt-2 font-bold text-[#173f70]">{value}</p>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSecurityModalOpen(true)}
+          className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#1264c5] px-4 text-sm font-bold text-[#1264c5] hover:bg-[#edf4ff]"
+        >
+          <Lock size={16} aria-hidden="true" /> Ganti password
+        </button>
+      </section>
+      <AccountSecurityDialog
+        profile={profile}
+        open={securityModalOpen}
+        onOpenChange={setSecurityModalOpen}
+        initialTab="password"
+      />
+    </>
+  );
+}
 
 function roleLabel(view: DashboardView) { return view === "ketua" ? "Ketua Kombel" : view === "anggota" ? "Anggota Kombel" : view === "ks" ? "Kepala Sekolah" : "Pengawas Dabin"; }
 function roleLabelFromProfile(role?: string) { return role === "super_admin" ? "Super Admin" : role === "guru" ? "Guru" : role === "kepala_sekolah" ? "Kepala Sekolah" : role === "pengawas_dabin" ? "Pengawas Dabin" : "Anggota"; }

@@ -21,6 +21,10 @@ function canCreateSession(profile: Awaited<ReturnType<typeof getCurrentKbProfile
   return Boolean(profile && (profile.role === "super_admin" || (profile.role === "guru" && profile.community_position === "ketua")));
 }
 
+function isRequiredAttendanceParticipant(profile: { role: string; community_position: string | null }) {
+  return profile.role === "kepala_sekolah" || (profile.role === "guru" && (profile.community_position === "ketua" || profile.community_position === "anggota"));
+}
+
 export async function GET() {
   const profile = await getCurrentKbProfile();
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
@@ -35,15 +39,47 @@ export async function GET() {
   const { data: records } = ids.length ? await admin.from("kb_attendance_records").select("id, session_id, profile_id, status, note, marked_at").in("session_id", ids) : { data: [] };
   const profileIds = [...new Set((records ?? []).map((record) => record.profile_id))];
   const { data: profiles } = profileIds.length ? await admin.from("kb_profiles").select("id, full_name, login_identifier, teacher_type, teaching_grade, role, community_position").in("id", profileIds) : { data: [] };
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const materialMap = new Map((materials ?? []).map((m) => [m.id, m.title]));
+
+  // Efficiently generate signed URLs only for sessions that actually have a file
+  const sessionsWithFiles = (sessions ?? []).filter((s) => Boolean(s.attendance_file_path));
+  const fileUrlMap = new Map<string, string>();
+  if (sessionsWithFiles.length) {
+    await Promise.all(
+      sessionsWithFiles.map(async (s) => {
+        if (!s.attendance_file_path) return;
+        const result = await admin.storage.from("kb-administrasi").createSignedUrl(s.attendance_file_path, 3600);
+        if (result.data?.signedUrl) fileUrlMap.set(s.attendance_file_path, result.data.signedUrl);
+      })
+    );
+  }
+
+  // Group records by session_id in a Map for instant O(1) grouping
+  const recordsBySession = new Map<string, Array<{ id: string; session_id: string; profile_id: string; status: string; note: string; marked_at: string; profile: unknown; profile_name: string }>>();
+  for (const record of records ?? []) {
+    const list = recordsBySession.get(record.session_id) ?? [];
+    const prof = profileMap.get(record.profile_id) ?? null;
+    list.push({
+      ...record,
+      profile: prof,
+      profile_name: prof?.full_name ?? "Anggota",
+    });
+    recordsBySession.set(record.session_id, list);
+  }
+
+  const hydratedSessions = (sessions ?? []).map((session) => ({
+    ...session,
+    attendance_file_url: session.attendance_file_path ? fileUrlMap.get(session.attendance_file_path) ?? null : null,
+    material_title: (session.material_entry_id ? materialMap.get(session.material_entry_id) : null) ?? "Materi kegiatan",
+    records: recordsBySession.get(session.id) ?? [],
+  }));
+
   return NextResponse.json({
     materials: materials ?? [],
     participants: participants ?? [],
-    sessions: await Promise.all((sessions ?? []).map(async (session) => ({
-      ...session,
-      attendance_file_url: session.attendance_file_path ? (await admin.storage.from("kb-administrasi").createSignedUrl(session.attendance_file_path, 60 * 60)).data?.signedUrl ?? null : null,
-      material_title: materials?.find((material) => material.id === session.material_entry_id)?.title ?? "Materi kegiatan",
-      records: (records ?? []).filter((record) => record.session_id === session.id).map((record) => ({ ...record, profile: profiles?.find((item) => item.id === record.profile_id) ?? null, profile_name: profiles?.find((item) => item.id === record.profile_id)?.full_name ?? "Anggota" })),
-    }))),
+    sessions: hydratedSessions,
     current_profile_id: profile.id,
   });
 }
@@ -95,7 +131,7 @@ export async function POST(request: Request) {
   }
 
   if (mark.success) {
-    if (profile.role !== "guru" && profile.role !== "kepala_sekolah") return NextResponse.json({ error: "Pengawas Dabin hanya dapat mengunduh rekap daftar hadir." }, { status: 403 });
+    if (!isRequiredAttendanceParticipant(profile)) return NextResponse.json({ error: "Pengawas Dabin tidak termasuk peserta wajib daftar hadir." }, { status: 403 });
     const { data: session } = await admin.from("kb_attendance_sessions").select("active_from, active_until").eq("id", mark.data.session_id).maybeSingle();
     if (!session) return NextResponse.json({ error: "Sesi kehadiran tidak ditemukan." }, { status: 404 });
     const now = Date.now();

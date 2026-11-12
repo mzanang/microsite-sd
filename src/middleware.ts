@@ -19,24 +19,71 @@ export async function middleware(request: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-  const protectedAdminPath = request.nextUrl.pathname.startsWith("/admin") && !request.nextUrl.pathname.startsWith("/admin/login");
-  const protectedKbPath = request.nextUrl.pathname.startsWith("/komunitas-belajar/dashboard") || request.nextUrl.pathname.startsWith("/komunitas-belajar/pengguna") || request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password") || request.nextUrl.pathname.startsWith("/komunitas-belajar/administrasi") || request.nextUrl.pathname.startsWith("/komunitas-belajar/monitoring");
-  const passwordChangePath = request.nextUrl.pathname.startsWith("/komunitas-belajar/ganti-password");
+  const pathname = request.nextUrl.pathname;
 
-  if (protectedAdminPath && !user) return NextResponse.redirect(new URL("/admin/login", request.url));
-  if (protectedAdminPath && user) {
+  // Admin routes protection
+  const protectedAdminPath = pathname.startsWith("/admin") && !pathname.startsWith("/admin/login");
+  if (protectedAdminPath) {
+    if (!user) return NextResponse.redirect(new URL("/admin/login", request.url));
     const { data: profile } = await supabase.from("admin_profiles").select("id").eq("user_id", user.id).eq("is_active", true).maybeSingle();
     if (!profile) return NextResponse.redirect(new URL("/admin/login?error=forbidden", request.url));
   }
 
-  if (protectedKbPath && !user) return NextResponse.redirect(new URL("/komunitas-belajar/login", request.url));
-  if (protectedKbPath && user) {
-    const { data: profile } = await supabase.from("kb_profiles").select("id, must_change_password").eq("auth_user_id", user.id).eq("is_active", true).maybeSingle();
-    if (!profile) return NextResponse.redirect(new URL("/komunitas-belajar/login?error=forbidden", request.url));
-    if (profile.must_change_password && !passwordChangePath) return NextResponse.redirect(new URL("/komunitas-belajar/ganti-password", request.url));
+  // Internal Komunitas Belajar routes protection
+  const isProtectedKbPath =
+    pathname.startsWith("/komunitas-belajar/ketua") ||
+    pathname.startsWith("/komunitas-belajar/anggota") ||
+    pathname.startsWith("/komunitas-belajar/ks") ||
+    pathname.startsWith("/komunitas-belajar/pengawas") ||
+    pathname.startsWith("/komunitas-belajar/ruang") ||
+    pathname.startsWith("/komunitas-belajar/dashboard") ||
+    pathname.startsWith("/komunitas-belajar/pengguna") ||
+    pathname.startsWith("/komunitas-belajar/keamanan-akun") ||
+    pathname.startsWith("/komunitas-belajar/ganti-password") ||
+    pathname.startsWith("/komunitas-belajar/administrasi") ||
+    pathname.startsWith("/komunitas-belajar/monitoring");
+
+  const isPasswordChangePage = pathname.startsWith("/komunitas-belajar/ganti-password");
+
+  if (isProtectedKbPath) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/komunitas-belajar/login", request.url));
+    }
+
+    const { data: profile } = await supabase
+      .from("kb_profiles")
+      .select("id, must_change_password, is_active")
+      .eq("auth_user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!profile) {
+      return NextResponse.redirect(new URL("/komunitas-belajar/login?error=forbidden", request.url));
+    }
+
+    // Enforce mandatory password change: user CANNOT access any internal page until password is changed
+    if (profile.must_change_password && !isPasswordChangePage) {
+      return NextResponse.redirect(new URL("/komunitas-belajar/ganti-password", request.url));
+    }
   }
 
   return response;
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/komunitas-belajar/dashboard/:path*", "/komunitas-belajar/pengguna/:path*", "/komunitas-belajar/ganti-password/:path*", "/komunitas-belajar/administrasi/:path*", "/komunitas-belajar/monitoring/:path*"] };
+export const config = {
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/komunitas-belajar/ketua/:path*",
+    "/komunitas-belajar/anggota/:path*",
+    "/komunitas-belajar/ks/:path*",
+    "/komunitas-belajar/pengawas/:path*",
+    "/komunitas-belajar/ruang/:path*",
+    "/komunitas-belajar/dashboard/:path*",
+    "/komunitas-belajar/pengguna/:path*",
+    "/komunitas-belajar/keamanan-akun/:path*",
+    "/komunitas-belajar/ganti-password/:path*",
+    "/komunitas-belajar/administrasi/:path*",
+    "/komunitas-belajar/monitoring/:path*",
+  ],
+};

@@ -9,6 +9,18 @@ export type PublicCommunityProfile = {
   community_position: "ketua" | "anggota" | null;
 };
 
+export type PublicTeamMember = {
+  id: string;
+  name: string;
+  role: "kepala_sekolah" | "pengawas_dabin" | "guru";
+  teacher_type: string | null;
+  teaching_subject: string | null;
+  teaching_grade: number | null;
+  community_position: "ketua" | "anggota" | null;
+  display_role: string;
+  grade_or_subject: string;
+};
+
 export type PublicCommunityData = {
   school: {
     name: string;
@@ -18,13 +30,14 @@ export type PublicCommunityData = {
   };
   principal: PublicCommunityProfile | null;
   teachers: PublicCommunityProfile[];
+  teamMembers: PublicTeamMember[];
 };
 
 export type PublicCommunityDocument = { id: string; title: string; description: string; original_name: string; public_url: string; created_at: string };
 export type PublicCommunityForumReply = { id: string; body: string; created_at: string; author_name: string; author_role: string };
 export type PublicCommunityEntry = { id: string; menu_key: "materi" | "dokumentasi" | "praktik_baik" | "forum"; title: string; body: string; external_url: string | null; event_date: string | null; meeting_number: number | null; category: string; attachments: Array<{ path: string; name: string; size: number; mime_type: string; url: string | null }>; created_by: string | null; author_name: string; replies: PublicCommunityForumReply[]; created_at: string };
 export type PublicCommunityTask = { id: string; name: string; description: string; collection_method: "file" | "link" | "both"; due_at: string | null; created_at: string; completed_count: number; pending_count: number };
-export type PublicCommunityAttendanceCounts = { hadir: number; sakit: number; izin: number; alpa: number };
+export type PublicCommunityAttendanceCounts = { hadir: number; sakit: number; izin: number; tanpaKeterangan: number; belumIsi: number };
 export type PublicCommunityAttendance = { id: string; title: string; event_date: string; location: string; notes: string; active_from: string | null; active_until: string | null; material_title: string; counts: PublicCommunityAttendanceCounts };
 export type PublicCommunityContent = { documents: PublicCommunityDocument[]; entries: PublicCommunityEntry[]; tasks: PublicCommunityTask[]; attendance: PublicCommunityAttendance[] };
 
@@ -37,6 +50,7 @@ const fallbackData: PublicCommunityData = {
   },
   principal: null,
   teachers: [],
+  teamMembers: [],
 };
 
 function parseProfile(value: unknown): PublicCommunityProfile | null {
@@ -67,18 +81,108 @@ function parseOverview(value: unknown): PublicCommunityData | null {
     },
     principal: parseProfile(overview.principal),
     teachers,
+    teamMembers: [],
   };
 }
 
 export async function getPublicCommunityData(): Promise<PublicCommunityData> {
-  if (!supabaseConfigured()) return fallbackData;
+  if (!supabaseConfigured()) return { ...fallbackData, teamMembers: [] };
   try {
+    const admin = createKbAdminClient();
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("get_kb_public_overview");
-    if (error) return fallbackData;
-    return parseOverview(data) ?? fallbackData;
+
+    // Fetch public overview for school data and db profiles concurrently
+    const [{ data: overviewData }, { data: dbProfiles }] = await Promise.all([
+      supabase.rpc("get_kb_public_overview"),
+      admin
+        .from("kb_profiles")
+        .select("id, full_name, role, teacher_type, teaching_subject, teaching_grade, community_position, is_active, is_public")
+        .eq("is_active", true)
+        .eq("is_public", true)
+        .neq("role", "super_admin"),
+    ]);
+
+    const overview = parseOverview(overviewData) ?? fallbackData;
+
+    let teamMembers: PublicTeamMember[] = [];
+    if (dbProfiles && dbProfiles.length > 0) {
+      teamMembers = dbProfiles.map((p) => {
+        let display_role = "Anggota";
+        if (p.role === "kepala_sekolah") display_role = "Kepala Sekolah";
+        else if (p.role === "pengawas_dabin") display_role = "Pengawas Dabin";
+        else if (p.community_position === "ketua") display_role = "Ketua";
+
+        let grade_or_subject = "-";
+        if (p.role === "guru") {
+          if (p.teacher_type === "Guru Mapel") {
+            grade_or_subject = p.teaching_subject || "Mata Pelajaran";
+          } else if (p.teacher_type === "Guru Kelas") {
+            grade_or_subject = p.teaching_grade ? `Kelas ${p.teaching_grade}` : "Guru Kelas";
+          } else {
+            grade_or_subject = p.teaching_subject || (p.teaching_grade ? `Kelas ${p.teaching_grade}` : "-");
+          }
+        }
+
+        return {
+          id: p.id,
+          name: p.full_name,
+          role: p.role,
+          teacher_type: p.role === "guru" ? (p.teacher_type || "Guru Kelas") : "-",
+          teaching_subject: p.teaching_subject,
+          teaching_grade: p.teaching_grade,
+          community_position: p.community_position,
+          display_role,
+          grade_or_subject,
+        };
+      });
+
+      // Strict role sorting priority:
+      // 1. Kepala Sekolah
+      // 2. Pengawas Dabin
+      // 3. Ketua
+      // 4. Anggota (alphabetical)
+      teamMembers.sort((a, b) => {
+        const priority = (m: PublicTeamMember) => {
+          if (m.role === "kepala_sekolah") return 1;
+          if (m.role === "pengawas_dabin") return 2;
+          if (m.community_position === "ketua") return 3;
+          return 4;
+        };
+        const diff = priority(a) - priority(b);
+        if (diff !== 0) return diff;
+        return a.name.localeCompare(b.name, "id");
+      });
+    } else {
+      teamMembers = overview.teachers.map((t, idx) => ({
+        id: String(idx),
+        name: t.name,
+        role: "guru",
+        teacher_type: t.teacher_type,
+        teaching_subject: null,
+        teaching_grade: null,
+        community_position: t.community_position,
+        display_role: t.community_position === "ketua" ? "Ketua" : "Anggota",
+        grade_or_subject: t.title || "-",
+      }));
+    }
+
+    const principalProfile = teamMembers.find((m) => m.role === "kepala_sekolah");
+    const principal = principalProfile
+      ? {
+          name: principalProfile.name,
+          teacher_type: "Kepala Sekolah",
+          title: "Kepala Sekolah",
+          community_position: null,
+        }
+      : overview.principal;
+
+    return {
+      ...overview,
+      principal,
+      teamMembers,
+    };
   } catch {
-    return fallbackData;
+    return { ...fallbackData, teamMembers: [] };
   }
 }
 
@@ -151,30 +255,34 @@ export async function getPublicCommunityContent(): Promise<PublicCommunityConten
     const { data: taskSubmissions } = taskIds.length
       ? await admin.from("kb_submissions").select("requirement_id, teacher_profile_id").in("requirement_id", taskIds)
       : { data: [] as Array<{ requirement_id: string; teacher_profile_id: string }> };
-    const { data: activeParticipants } = await admin.from("kb_profiles").select("id").eq("role", "guru").eq("is_active", true);
-    const participantCount = activeParticipants?.length ?? 0;
+    const { data: activeParticipants } = await admin.from("kb_profiles").select("id, role, community_position").eq("is_active", true).neq("role", "pengawas_dabin").neq("role", "super_admin");
+    const requiredParticipants = (activeParticipants ?? []).filter((participant) => participant.role === "kepala_sekolah" || (participant.role === "guru" && (participant.community_position === "ketua" || participant.community_position === "anggota")));
+    const participantIds = new Set(requiredParticipants.map((participant) => participant.id));
+    const participantCount = requiredParticipants.length;
+    const taskParticipantCount = (activeParticipants ?? []).filter((participant) => participant.role === "guru").length;
     const taskCompleted = new Map<string, number>();
     for (const submission of taskSubmissions ?? []) taskCompleted.set(submission.requirement_id, (taskCompleted.get(submission.requirement_id) ?? 0) + 1);
     const sessionIds = (sessions ?? []).map((session) => session.id);
     const { data: attendanceRecords } = sessionIds.length
-      ? await admin.from("kb_attendance_records").select("session_id, status").in("session_id", sessionIds)
-      : { data: [] as Array<{ session_id: string; status: string }> };
+      ? await admin.from("kb_attendance_records").select("session_id, profile_id, status").in("session_id", sessionIds)
+      : { data: [] as Array<{ session_id: string; profile_id: string; status: string }> };
     const attendanceCounts = new Map<string, PublicCommunityAttendanceCounts>();
-    for (const sessionId of sessionIds) attendanceCounts.set(sessionId, { hadir: 0, sakit: 0, izin: 0, alpa: 0 });
+    for (const sessionId of sessionIds) attendanceCounts.set(sessionId, { hadir: 0, sakit: 0, izin: 0, tanpaKeterangan: 0, belumIsi: participantCount });
     for (const record of attendanceRecords ?? []) {
       const counts = attendanceCounts.get(record.session_id);
-      if (!counts) continue;
+      if (!counts || !participantIds.has(record.profile_id)) continue;
       if (record.status === "hadir") counts.hadir += 1;
       else if (record.status === "sakit") counts.sakit += 1;
       else if (record.status === "izin") counts.izin += 1;
-      else counts.alpa += 1;
+      else if (record.status === "alpa") counts.tanpaKeterangan += 1;
+      else continue;
+      counts.belumIsi = Math.max(participantCount - counts.hadir - counts.sakit - counts.izin - counts.tanpaKeterangan, 0);
     }
-    for (const counts of attendanceCounts.values()) counts.alpa = Math.max(participantCount - counts.hadir - counts.sakit - counts.izin - counts.alpa, 0) + counts.alpa;
     return {
       documents,
       entries: normalizedEntries,
-      tasks: (tasks ?? []).map((task) => ({ ...task, completed_count: taskCompleted.get(task.id) ?? 0, pending_count: Math.max(participantCount - (taskCompleted.get(task.id) ?? 0), 0) })) as PublicCommunityTask[],
-      attendance: (sessions ?? []).map((session) => ({ ...session, material_title: materialTitles.get(session.material_entry_id) ?? "Materi kegiatan", counts: attendanceCounts.get(session.id) ?? { hadir: 0, sakit: 0, izin: 0, alpa: 0 } })) as PublicCommunityAttendance[],
+      tasks: (tasks ?? []).map((task) => ({ ...task, completed_count: taskCompleted.get(task.id) ?? 0, pending_count: Math.max(taskParticipantCount - (taskCompleted.get(task.id) ?? 0), 0) })) as PublicCommunityTask[],
+      attendance: (sessions ?? []).map((session) => ({ ...session, material_title: materialTitles.get(session.material_entry_id) ?? "Materi kegiatan", counts: attendanceCounts.get(session.id) ?? { hadir: 0, sakit: 0, izin: 0, tanpaKeterangan: 0, belumIsi: participantCount } })) as PublicCommunityAttendance[],
     };
   } catch {
     return { documents, entries: [], tasks: [], attendance: [] };

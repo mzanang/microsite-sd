@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { randomInt } from "node:crypto";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,8 @@ export type KbProfile = {
   is_active: boolean;
   is_public: boolean;
   must_change_password: boolean;
+  recovery_email?: string | null;
+  recovery_email_verified?: boolean;
 };
 
 export function normalizeLoginIdentifier(value: string) {
@@ -45,13 +48,18 @@ export function generateTemporaryPassword() {
   return password.join("");
 }
 
-export async function getCurrentKbProfile(): Promise<KbProfile | null> {
+export const getCurrentKbProfile = cache(async (): Promise<KbProfile | null> => {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return null;
-  const { data } = await supabase.from("kb_profiles").select("id, auth_user_id, full_name, login_identifier, role, teacher_type, teaching_subject, teaching_grade, teaching_grades, public_title, community_position, is_active, is_public, must_change_password").eq("auth_user_id", userData.user.id).eq("is_active", true).maybeSingle();
+  const { data } = await supabase
+    .from("kb_profiles")
+    .select("id, auth_user_id, full_name, login_identifier, role, teacher_type, teaching_subject, teaching_grade, teaching_grades, public_title, community_position, is_active, is_public, must_change_password, recovery_email, recovery_email_verified")
+    .eq("auth_user_id", userData.user.id)
+    .eq("is_active", true)
+    .maybeSingle();
   return (data as KbProfile | null) ?? null;
-}
+});
 
 export function getKbDashboardPath(profile: Pick<KbProfile, "role" | "community_position">) {
   if (profile.role === "super_admin") return "/admin/dashboard";
@@ -61,7 +69,7 @@ export function getKbDashboardPath(profile: Pick<KbProfile, "role" | "community_
   return "/komunitas-belajar/pengawas/dashboard";
 }
 
-export async function canManageKbUsers() {
+export const canManageKbUsers = cache(async (): Promise<boolean> => {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return false;
@@ -75,7 +83,7 @@ export async function canManageKbUsers() {
   } catch {
     return false;
   }
-}
+});
 
 export async function canManageKbCommunityDocuments() {
   const kbProfile = await getCurrentKbProfile();

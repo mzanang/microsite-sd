@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createKbAdminClient, getCurrentKbProfile } from "@/lib/kb/auth";
 import { notifyMembersAboutTask } from "@/lib/kb/notifications";
+import { getLinkedSessionMap } from "@/lib/kb/linked-session-data";
 
 const taskSchema = z.object({
   name: z.string().trim().min(2).max(160),
@@ -16,11 +17,41 @@ export async function GET() {
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
   const admin = createKbAdminClient();
   const canManage = profile.role === "super_admin" || (profile.role === "guru" && profile.community_position === "ketua");
-  let query = admin.from("kb_document_requirements").select("id, name, description, collection_method, is_required, due_at, is_active, attendance_session_id").order("sort_order", { ascending: true });
+  let query = admin
+    .from("kb_document_requirements")
+    .select("id, name, description, collection_method, is_required, due_at, is_active, attendance_session_id")
+    .order("sort_order", { ascending: true });
   if (!canManage) query = query.eq("is_active", true);
-  const { data, error } = await query;
+  const { data: requirements, error } = await query;
   if (error) return NextResponse.json({ error: "Daftar tugas belum dapat dimuat." }, { status: 503 });
-  return NextResponse.json({ requirements: data ?? [] });
+
+  const rawRequirements = requirements ?? [];
+  const reqIds = rawRequirements.map((r) => r.id);
+  const sessionIds = [...new Set(rawRequirements.map((r) => r.attendance_session_id).filter(Boolean))] as string[];
+
+  // Fetch linked sessions and verified submissions in parallel
+  const [{ data: verifiedSubmissions }, sessionMap] = await Promise.all([
+    reqIds.length
+      ? admin.from("kb_submissions").select("id, requirement_id, status").in("requirement_id", reqIds).in("status", ["lengkap", "perlu_perbaikan"])
+      : Promise.resolve({ data: [] }),
+    getLinkedSessionMap(admin, sessionIds),
+  ]);
+  const lockedReqIds = new Set((verifiedSubmissions ?? []).map((s) => s.requirement_id));
+
+  const enrichedRequirements = rawRequirements.map((r) => {
+    const session = r.attendance_session_id ? sessionMap.get(r.attendance_session_id) : null;
+    const isLocked = lockedReqIds.has(r.id);
+    return {
+      ...r,
+      meeting_number: session?.meeting_number ?? null,
+      material_title: session?.material_title ?? null,
+      event_date: session?.event_date ?? null,
+      is_locked: isLocked,
+      locked_reason: isLocked ? "Tugas telah diverifikasi oleh Kepala Sekolah." : null,
+    };
+  });
+
+  return NextResponse.json({ requirements: enrichedRequirements });
 }
 
 export async function POST(request: Request) {
@@ -63,6 +94,23 @@ export async function PATCH(request: Request) {
   const parsed = taskSchema.partial().extend({ is_active: z.boolean().optional() }).safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Perubahan tugas belum valid." }, { status: 400 });
   const admin = createKbAdminClient();
+
+  // Check if requirement has active KS verification (locked)
+  const { data: verifiedSubmission } = await admin
+    .from("kb_submissions")
+    .select("id, status")
+    .eq("requirement_id", body.id)
+    .in("status", ["lengkap", "perlu_perbaikan"])
+    .limit(1)
+    .maybeSingle();
+
+  if (verifiedSubmission) {
+    return NextResponse.json(
+      { error: "Tugas tidak dapat diubah karena telah diverifikasi oleh Kepala Sekolah. Minta Kepala Sekolah membatalkan verifikasi terlebih dahulu jika ingin melakukan perubahan." },
+      { status: 409 }
+    );
+  }
+
   const updates = { ...parsed.data, ...(parsed.data.due_at !== undefined ? { due_at: parsed.data.due_at ? new Date(parsed.data.due_at).toISOString() : null } : {}), updated_at: new Date().toISOString() };
   const { data, error } = await admin.from("kb_document_requirements").update(updates).eq("id", body.id).select("id, name, description, collection_method, is_required, due_at, is_active, attendance_session_id").single();
   if (error || !data) return NextResponse.json({ error: "Tugas tidak ditemukan." }, { status: 404 });
@@ -75,6 +123,23 @@ export async function DELETE(request: Request) {
   const body = await request.json().catch(() => null) as { id?: string } | null;
   if (!body?.id) return NextResponse.json({ error: "Tugas tidak valid." }, { status: 400 });
   const admin = createKbAdminClient();
+
+  // Check if requirement has active KS verification (locked)
+  const { data: verifiedSubmission } = await admin
+    .from("kb_submissions")
+    .select("id, status")
+    .eq("requirement_id", body.id)
+    .in("status", ["lengkap", "perlu_perbaikan"])
+    .limit(1)
+    .maybeSingle();
+
+  if (verifiedSubmission) {
+    return NextResponse.json(
+      { error: "Tugas tidak dapat dihapus karena telah diverifikasi oleh Kepala Sekolah." },
+      { status: 409 }
+    );
+  }
+
   const { count: submissionCount, error: countError } = await admin.from("kb_submissions").select("id", { count: "exact", head: true }).eq("requirement_id", body.id);
   if (countError) return NextResponse.json({ error: "Riwayat tugas gagal diperiksa." }, { status: 503 });
   if ((submissionCount ?? 0) > 0) return NextResponse.json({ error: "Tugas tidak dapat dihapus karena sudah memiliki pengumpulan. Gunakan status Nonaktif." }, { status: 409 });

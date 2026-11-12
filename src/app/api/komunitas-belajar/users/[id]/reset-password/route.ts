@@ -8,7 +8,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   try {
     const admin = createKbAdminClient();
-    const { data: profile, error: profileLookupError } = await admin.from("kb_profiles").select("id, auth_user_id, full_name").eq("id", id).maybeSingle();
+    const { data: profile, error: profileLookupError } = await admin.from("kb_profiles").select("id, auth_user_id, full_name, login_identifier").eq("id", id).maybeSingle();
     if (profileLookupError) return NextResponse.json({ error: "Profil pengguna gagal dibaca." }, { status: 500 });
     if (!profile?.auth_user_id) return NextResponse.json({ error: "Akun autentikasi pengguna tidak ditemukan." }, { status: 404 });
 
@@ -18,9 +18,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
     const { error: updateError } = await admin.from("kb_profiles").update({ must_change_password: true, updated_at: new Date().toISOString() }).eq("id", id);
     if (updateError) return NextResponse.json({ error: "Status wajib ganti password gagal diperbarui." }, { status: 500 });
-    return NextResponse.json({ ok: true, full_name: profile.full_name, temporary_password: temporaryPassword });
-  } catch (error) {
-    console.error("KB password reset failed", error);
+    return NextResponse.json({ ok: true, full_name: profile.full_name, login_identifier: profile.login_identifier, temporary_password: temporaryPassword });
+  } catch {
     return NextResponse.json({ error: "Layanan reset password belum siap digunakan." }, { status: 503 });
   }
 }
