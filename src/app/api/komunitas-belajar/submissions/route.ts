@@ -14,11 +14,12 @@ const mimeExtensions: Record<string, string> = {
   "image/png": "png",
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   const profile = await getCurrentKbProfile();
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
   const admin = createKbAdminClient();
-  const canSeeAllSubmissions = profile.role !== "guru";
+  const scope = new URL(request.url).searchParams.get("scope");
+  const canSeeAllSubmissions = scope !== "mine" && (profile.role !== "guru" || profile.community_position === "ketua");
 
   const [
     { data: requirements, error: requirementError },

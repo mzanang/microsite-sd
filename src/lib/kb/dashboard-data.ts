@@ -40,6 +40,20 @@ export type RoleDashboardData = {
 type SubmissionRow = { id: string; requirement_id: string; status: string; created_at: string; updated_at: string; submitted_at: string | null; teacher_profile_id: string };
 type ReviewRow = { submission_id: string; reviewer_role: string; status: string; reviewed_at: string };
 
+function latestKsReviews(reviews: ReviewRow[]) {
+  const latest = new Map<string, ReviewRow>();
+  for (const review of reviews) {
+    if (review.reviewer_role === "kepala_sekolah" && !latest.has(review.submission_id)) latest.set(review.submission_id, review);
+  }
+  return latest;
+}
+
+function effectiveSubmissionStatus(submission: SubmissionRow, review?: ReviewRow) {
+  if (!review) return submission.status;
+  if (submission.submitted_at && review.reviewed_at && new Date(submission.submitted_at).getTime() > new Date(review.reviewed_at).getTime()) return "menunggu_verifikasi_ulang";
+  return review.status;
+}
+
 const statusColors = {
   submitted: "#1473e6",
   pending: "#f59e0b",
@@ -78,20 +92,8 @@ export const getRoleDashboardData = cache(async (profile: KbProfile, view: Dashb
     : { data: [] as ReviewRow[] };
   const reviewRows = (reviews ?? []) as ReviewRow[];
   const submissionById = new Map(submissionRows.map((submission) => [submission.id, submission]));
-  const ksStatusBySubmission = new Map<string, string>();
-  for (const review of reviewRows) {
-    if (review.reviewer_role === "kepala_sekolah" && !ksStatusBySubmission.has(review.submission_id)) {
-      const submission = submissionById.get(review.submission_id);
-      if (submission) {
-        if (submission.submitted_at && review.reviewed_at && new Date(submission.submitted_at).getTime() > new Date(review.reviewed_at).getTime()) {
-          ksStatusBySubmission.set(review.submission_id, "menunggu_verifikasi_ulang");
-        } else {
-          ksStatusBySubmission.set(review.submission_id, review.status);
-        }
-      }
-    }
-  }
-  const effectiveSubmissionRows = submissionRows.map((submission) => ({ ...submission, status: ksStatusBySubmission.get(submission.id) ?? submission.status }));
+  const ksReviewsBySubmission = latestKsReviews(reviewRows);
+  const effectiveSubmissionRows = submissionRows.map((submission) => ({ ...submission, status: effectiveSubmissionStatus(submission, ksReviewsBySubmission.get(submission.id)) }));
   const completeCount = effectiveSubmissionRows.filter((item) => item.status === "lengkap").length;
   const pendingCount = effectiveSubmissionRows.filter((item) => item.status === "menunggu_pemeriksaan" || item.status === "menunggu_verifikasi_ulang").length;
   const revisionCount = effectiveSubmissionRows.filter((item) => item.status === "perlu_perbaikan").length;
@@ -209,10 +211,15 @@ export async function getRoleMenuBadges(profile: KbProfile, view: DashboardView,
       return !submission || effectiveStatus(submission) === "perlu_perbaikan";
     }).length;
   } else if (view === "ks" || view === "ketua") {
-    // For KS / Ketua: query directly for count of pending reviews
-    const { count } = await admin.from("kb_submissions").select("id", { count: "exact", head: true }).eq("status", "menunggu_pemeriksaan");
-    if (view === "ks") badges.verifikasi = count ?? 0;
-    if (view === "ketua") badges.pengumpulan_anggota = count ?? 0;
+    const submissions = providedSubmissions ?? ((await admin.from("kb_submissions").select("id, requirement_id, status, created_at, updated_at, submitted_at, teacher_profile_id").order("updated_at", { ascending: false })).data ?? []) as SubmissionRow[];
+    const submissionIds = submissions.map((submission) => submission.id);
+    const { data: reviews } = submissionIds.length
+      ? await admin.from("kb_reviews").select("submission_id, reviewer_role, status, reviewed_at").eq("reviewer_role", "kepala_sekolah").in("submission_id", submissionIds).order("reviewed_at", { ascending: false })
+      : { data: [] as ReviewRow[] };
+    const latestReviews = latestKsReviews((reviews ?? []) as ReviewRow[]);
+    const count = submissions.filter((submission) => ["menunggu_pemeriksaan", "menunggu_verifikasi_ulang"].includes(effectiveSubmissionStatus(submission, latestReviews.get(submission.id)))).length;
+    if (view === "ks") badges.verifikasi = count;
+    if (view === "ketua") badges.pengumpulan_anggota = count;
   }
 
   // Attendance badge: only query sessions currently active right now

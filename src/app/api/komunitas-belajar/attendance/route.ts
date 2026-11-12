@@ -12,6 +12,7 @@ const createSchema = z.object({
   location: z.string().trim().max(180).default(""),
   notes: z.string().trim().max(1000).default(""),
 });
+const updateSchema = createSchema.omit({ action: true }).extend({ session_id: z.string().uuid() });
 const markSchema = z.object({ action: z.literal("mark_self"), session_id: z.string().uuid(), status: z.enum(["hadir", "izin", "sakit", "alpa"]), note: z.string().trim().max(500).default("") });
 const manageSchema = z.object({ action: z.literal("manage_record"), session_id: z.string().uuid(), profile_id: z.string().uuid(), status: z.enum(["hadir", "izin", "sakit", "alpa"]), note: z.string().trim().max(500).default("") });
 const maxAttendanceFileSize = 1 * 1024 * 1024;
@@ -151,12 +152,41 @@ export async function POST(request: Request) {
   return NextResponse.json({ error: "Data kehadiran belum valid." }, { status: 400 });
 }
 
+export async function PATCH(request: Request) {
+  const profile = await getCurrentKbProfile();
+  if (!canCreateSession(profile)) return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat mengubah daftar hadir." }, { status: 403 });
+  const parsed = updateSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Data daftar hadir belum valid." }, { status: 400 });
+  const admin = createKbAdminClient();
+  const from = new Date(parsed.data.active_from);
+  const until = new Date(parsed.data.active_until);
+  if (until <= from) return NextResponse.json({ error: "Batas akhir presensi harus setelah waktu mulai." }, { status: 400 });
+  const [{ data: session }, { data: material }] = await Promise.all([
+    admin.from("kb_attendance_sessions").select("id, meeting_number").eq("id", parsed.data.session_id).maybeSingle(),
+    admin.from("kb_community_entries").select("id, title").eq("id", parsed.data.material_entry_id).eq("menu_key", "materi").maybeSingle(),
+  ]);
+  if (!session) return NextResponse.json({ error: "Daftar hadir tidak ditemukan." }, { status: 404 });
+  if (!material) return NextResponse.json({ error: "Materi kegiatan wajib dipilih." }, { status: 400 });
+  const { data, error } = await admin.from("kb_attendance_sessions").update({ material_entry_id: material.id, event_date: parsed.data.event_date, active_from: parsed.data.active_from, active_until: parsed.data.active_until, location: parsed.data.location, notes: parsed.data.notes, title: `Pertemuan ke-${session.meeting_number} - ${material.title}`.slice(0, 180), updated_at: new Date().toISOString() }).eq("id", session.id).select("id, title, meeting_number, event_date, location, notes, material_entry_id, active_from, active_until, created_by, created_at, attendance_file_path, attendance_file_name, attendance_file_mime_type").single();
+  if (error || !data) return NextResponse.json({ error: "Daftar hadir gagal diperbarui." }, { status: 503 });
+  return NextResponse.json({ session: { ...data, material_title: material.title, records: [] } });
+}
+
 export async function DELETE(request: Request) {
   const profile = await getCurrentKbProfile();
-  if (!canCreateSession(profile)) return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat menghapus rekap kehadiran." }, { status: 403 });
+  if (!canCreateSession(profile)) return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat menghapus data daftar hadir." }, { status: 403 });
   const body = await request.json().catch(() => null) as { session_id?: unknown; profile_id?: unknown } | null;
-  if (!body || typeof body.session_id !== "string" || typeof body.profile_id !== "string") return NextResponse.json({ error: "Data rekap tidak valid." }, { status: 400 });
-  const { error } = await createKbAdminClient().from("kb_attendance_records").delete().eq("session_id", body.session_id).eq("profile_id", body.profile_id);
-  if (error) return NextResponse.json({ error: "Rekap kehadiran gagal dihapus." }, { status: 503 });
+  if (!body || typeof body.session_id !== "string") return NextResponse.json({ error: "Data penghapusan tidak valid." }, { status: 400 });
+  const admin = createKbAdminClient();
+  if (typeof body.profile_id === "string") {
+    const { error } = await admin.from("kb_attendance_records").delete().eq("session_id", body.session_id).eq("profile_id", body.profile_id);
+    if (error) return NextResponse.json({ error: "Rekap kehadiran gagal dihapus." }, { status: 503 });
+    return NextResponse.json({ ok: true });
+  }
+  const { data: session } = await admin.from("kb_attendance_sessions").select("id, attendance_file_path").eq("id", body.session_id).maybeSingle();
+  if (!session) return NextResponse.json({ error: "Daftar hadir tidak ditemukan." }, { status: 404 });
+  const { error } = await admin.from("kb_attendance_sessions").delete().eq("id", session.id);
+  if (error) return NextResponse.json({ error: "Daftar hadir gagal dihapus." }, { status: 503 });
+  if (session.attendance_file_path) await admin.storage.from("kb-administrasi").remove([session.attendance_file_path]);
   return NextResponse.json({ ok: true });
 }

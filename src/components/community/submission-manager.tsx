@@ -100,7 +100,7 @@ export function SubmissionManager() {
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/komunitas-belajar/submissions", { cache: "no-store" });
+      const response = await fetch("/api/komunitas-belajar/submissions?scope=mine", { cache: "no-store" });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(body.error ?? "Data pengumpulan tugas gagal dimuat.");

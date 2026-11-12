@@ -132,6 +132,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Hasil pemeriksaan tersimpan, namun status tugas gagal diperbarui." }, { status: 500 });
   }
 
+  if (parsed.data.status !== "menunggu_pemeriksaan") {
+    await admin
+      .from("kb_notifications")
+      .update({ read_at: now })
+      .eq("recipient_profile_id", profile.id)
+      .eq("notification_type", "submission_received")
+      .like("dedupe_key", `submission:${parsed.data.submission_id}:%`);
+  }
+
   // Notify teacher
   await notifyTeacherAboutReview(admin, {
     submissionId: parsed.data.submission_id,
