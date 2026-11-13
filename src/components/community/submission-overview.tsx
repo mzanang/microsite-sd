@@ -233,10 +233,17 @@ export function SubmissionOverviewV2({
     }
   }
 
+  const getRequirement = useCallback(
+    (submission: SubmissionOverviewRow) => {
+      return requirements.find((r) => r.id === submission.requirement_id);
+    },
+    [requirements]
+  );
+
   // Filtered rows
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
-      const req = requirements.find((r) => r.id === row.requirement_id);
+      const req = getRequirement(row);
 
       // 1. Search Teacher
       const name = row.teacher?.full_name ?? "";
@@ -282,7 +289,7 @@ export function SubmissionOverviewV2({
 
       return true;
     });
-  }, [rows, requirements, searchGuru, filterPertemuan, filterMateri, filterMonth, filterYear, filterStatusPengumpulan, filterStatusVerifikasi]);
+  }, [rows, getRequirement, searchGuru, filterPertemuan, filterMateri, filterMonth, filterYear, filterStatusPengumpulan, filterStatusVerifikasi]);
 
   const resetFilters = () => {
     setSearchGuru("");
