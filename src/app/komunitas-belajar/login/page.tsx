@@ -200,12 +200,12 @@ export default function CommunityLoginPage() {
         {/* KANAN: bg_panel bagian guru (Hanya tampil di Desktop/Tablet md ke atas, tidak ada di mobile) */}
         <div className="relative hidden md:block md:col-span-6 lg:col-span-5 xl:col-span-6 bg-[#0B5FC3] overflow-hidden">
           <Image
-            src="/bg_kombel.webp"
+            src="/bg_panel_kombel.webp"
             alt="Kolaborasi Guru SD Negeri Dukuhwaru 01"
             fill
             priority
             sizes="(max-width: 1024px) 50vw, 600px"
-            className="object-cover object-[88%_center] transition-transform duration-700 hover:scale-[1.02]"
+            className="object-cover object-center transition-transform duration-700 hover:scale-[1.02]"
           />
           {/* Soft gradient overlay */}
           <div
