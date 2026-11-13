@@ -428,7 +428,11 @@ export function AccountSecurityView({
                   </div>
                   <div className="rounded-xl border border-[#e1eaf4] bg-[#f8fbff] p-4">
                     <p className="text-xs font-semibold text-[#6683a6]">NIP / NIK</p>
-                    <p className="mt-1 font-bold text-[#102d62] text-sm">{profile.login_identifier || "Belum diatur"}</p>
+                    <p className="mt-1 font-bold text-[#102d62] text-sm">
+                      {profile.login_identifier
+                        ? `${profile.login_identifier.slice(0, 4)}${"X".repeat(Math.max(profile.login_identifier.length - 4, 0))}`
+                        : "Belum diatur"}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-[#e1eaf4] bg-[#f8fbff] p-4">
                     <p className="text-xs font-semibold text-[#6683a6]">Peran Akses</p>
