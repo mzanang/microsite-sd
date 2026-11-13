@@ -233,14 +233,10 @@ export function SubmissionOverviewV2({
     }
   }
 
-  function getRequirement(submission: SubmissionOverviewRow) {
-    return requirements.find((r) => r.id === submission.requirement_id);
-  }
-
   // Filtered rows
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
-      const req = getRequirement(row);
+      const req = requirements.find((r) => r.id === row.requirement_id);
 
       // 1. Search Teacher
       const name = row.teacher?.full_name ?? "";
