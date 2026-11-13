@@ -56,6 +56,16 @@ const roleConfig: Record<DashboardView, { label: string; groups: MenuGroup[] }> 
       { items: [{ key: "profil", label: "Profil Saya", href: workspaceHref("profil"), icon: Settings }] },
     ],
   },
+  sekretaris: {
+    label: "Sekretaris Kombel",
+    groups: [
+      { items: [{ key: "dashboard", label: "Dashboard", href: "/komunitas-belajar/sekretaris/dashboard", icon: Home }] },
+      { label: "KEGIATAN KOMUNITAS", items: [{ key: "upload_sk", label: "Upload SK", href: workspaceHref("upload_sk"), icon: FileText }, { key: "materi", label: "Materi Kegiatan", href: workspaceHref("materi"), icon: BookOpen }, { key: "dokumentasi", label: "Dokumentasi", href: workspaceHref("dokumentasi"), icon: ImageIcon }, { key: "praktik_baik", label: "Praktik Baik", href: workspaceHref("praktik_baik"), icon: Star }, { key: "forum", label: "Forum Diskusi", href: workspaceHref("forum"), icon: MessageCircle }, { key: "tugas_kombel", permissionKey: "upload_tugas", label: "Tugas Kombel", href: workspaceHref("tugas_kombel"), icon: ClipboardCheck }] },
+      { label: "MANAJEMEN TUGAS", items: [{ key: "memberikan_tugas", label: "Buat Tugas Kombel", href: workspaceHref("memberikan_tugas"), icon: ClipboardCheck }, { key: "pengumpulan_anggota", permissionKey: "upload_tugas", label: "Tugas Masuk", href: workspaceHref("pengumpulan_anggota"), icon: UsersRound }] },
+      { label: "MONITORING", items: [{ key: "daftar_hadir", label: "Daftar Hadir", href: workspaceHref("daftar_hadir"), icon: CalendarCheck2 }] },
+      { items: [{ key: "profil", label: "Profil Saya", href: workspaceHref("profil"), icon: Settings }] },
+    ],
+  },
   anggota: {
     label: "Anggota Kombel",
     groups: [

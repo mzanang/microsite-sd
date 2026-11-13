@@ -16,7 +16,7 @@ export async function GET() {
   const profile = await getCurrentKbProfile();
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
   const admin = createKbAdminClient();
-  const canManage = profile.role === "super_admin" || (profile.role === "guru" && profile.community_position === "ketua");
+  const canManage = profile.role === "super_admin" || (profile.role === "guru" && ["ketua", "sekretaris"].includes(profile.community_position ?? ""));
   let query = admin
     .from("kb_document_requirements")
     .select("id, name, description, collection_method, is_required, due_at, is_active, attendance_session_id")
@@ -56,7 +56,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const profile = await getCurrentKbProfile();
-  if (!profile || profile.role !== "guru" || profile.community_position !== "ketua") return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat membuat tugas." }, { status: 403 });
+  if (!profile || profile.role !== "guru" || !["ketua", "sekretaris"].includes(profile.community_position ?? "")) return NextResponse.json({ error: "Hanya pengelola komunitas yang dapat membuat tugas." }, { status: 403 });
   const parsed = taskSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Nama, keterangan, dan metode pengumpulan wajib diperiksa." }, { status: 400 });
 
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const profile = await getCurrentKbProfile();
-  if (!profile || profile.role !== "guru" || profile.community_position !== "ketua") return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat mengubah tugas." }, { status: 403 });
+  if (!profile || profile.role !== "guru" || !["ketua", "sekretaris"].includes(profile.community_position ?? "")) return NextResponse.json({ error: "Hanya pengelola komunitas yang dapat mengubah tugas." }, { status: 403 });
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body || typeof body.id !== "string") return NextResponse.json({ error: "Tugas tidak valid." }, { status: 400 });
   const parsed = taskSchema.partial().extend({ is_active: z.boolean().optional() }).safeParse(body);
@@ -119,7 +119,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const profile = await getCurrentKbProfile();
-  if (!profile || profile.role !== "guru" || profile.community_position !== "ketua") return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat menghapus tugas." }, { status: 403 });
+  if (!profile || profile.role !== "guru" || !["ketua", "sekretaris"].includes(profile.community_position ?? "")) return NextResponse.json({ error: "Hanya pengelola komunitas yang dapat menghapus tugas." }, { status: 403 });
   const body = await request.json().catch(() => null) as { id?: string } | null;
   if (!body?.id) return NextResponse.json({ error: "Tugas tidak valid." }, { status: 400 });
   const admin = createKbAdminClient();

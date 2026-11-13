@@ -56,6 +56,8 @@ export default function ChangeCommunityPasswordPage() {
           ? "/komunitas-belajar/pengawas/dashboard"
           : result.community_position === "ketua"
           ? "/komunitas-belajar/ketua/dashboard"
+          : result.community_position === "sekretaris"
+          ? "/komunitas-belajar/sekretaris/dashboard"
           : "/komunitas-belajar/anggota/dashboard";
 
       router.push(destination);

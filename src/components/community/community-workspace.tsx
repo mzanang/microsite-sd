@@ -34,7 +34,7 @@ export function CommunityWorkspace({ profile, view, menu, accessLevel, data, doc
   if (menu === "tugas_kombel") return <WorkspaceFrame eyebrow="Kegiatan komunitas" title="Tugas Kombel" description="Lihat persyaratan yang perlu diselesaikan dan buka ruang pengumpulan." accessLevel={accessLevel}><TaskList requirements={data.requirements} /></WorkspaceFrame>;
   if (menu === "tugas") return <WorkspaceFrame eyebrow="Kumpulkan tugas" title="Tugas & Administrasi" description="Kelola pengumpulan dan pantau hasil verifikasi Kepala Sekolah." accessLevel={accessLevel}><SubmissionManager /></WorkspaceFrame>;
   if (menu === "upload_tugas") {
-    const isPersonalTaskView = view === "anggota" || view === "ketua";
+    const isPersonalTaskView = view === "anggota" || view === "ketua" || view === "sekretaris";
     return isPersonalTaskView
       ? <WorkspaceFrame eyebrow="Kumpulkan tugas" title="Kumpulkan Tugas" description="Kirim dokumen atau link tugas yang diminta Ketua Kombel." accessLevel={accessLevel}><SubmissionManager /></WorkspaceFrame>
       : <WorkspaceFrame eyebrow="Manajemen tugas" title="Tugas Masuk" description="Lihat pengumpulan tugas guru sesuai kewenangan akun." accessLevel={accessLevel}><SubmissionOverviewV2 pageTitle="Tugas Masuk" pageDescription="Lihat pengumpulan tugas guru sesuai kewenangan akun." /></WorkspaceFrame>;
@@ -866,7 +866,7 @@ function ProfileWorkspace({ profile, view, data }: { profile: KbProfile; view: D
   );
 }
 
-function roleLabel(view: DashboardView) { return view === "ketua" ? "Ketua Kombel" : view === "anggota" ? "Anggota Kombel" : view === "ks" ? "Kepala Sekolah" : "Pengawas Dabin"; }
+function roleLabel(view: DashboardView) { return view === "ketua" ? "Ketua Kombel" : view === "sekretaris" ? "Sekretaris Kombel" : view === "anggota" ? "Anggota Kombel" : view === "ks" ? "Kepala Sekolah" : "Pengawas Dabin"; }
 function roleLabelFromProfile(role?: string) { return role === "super_admin" ? "Super Admin" : role === "guru" ? "Guru" : role === "kepala_sekolah" ? "Kepala Sekolah" : role === "pengawas_dabin" ? "Pengawas Dabin" : "Anggota"; }
 function statusText(status: string) { return status === "lengkap" ? "Lengkap" : status === "perlu_perbaikan" ? "Perlu perbaikan" : status === "menunggu_pemeriksaan" ? "Menunggu pemeriksaan" : "Belum diunggah"; }
 function StatePanel({ title, description, tone = "normal" }: { title: string; description: string; tone?: "normal" | "error" }) { return <div className={`rounded-xl border px-5 py-10 text-center ${tone === "error" ? "border-red-200 bg-red-50" : "border-dashed border-[#bfd2e8] bg-[#f8fbff]"}`}><p className={`text-sm font-bold ${tone === "error" ? "text-red-800" : "text-[#34577f]"}`}>{title}</p><p className={`mt-2 text-xs leading-5 ${tone === "error" ? "text-red-700" : "text-[#6683a6]"}`}>{description}</p></div>; }

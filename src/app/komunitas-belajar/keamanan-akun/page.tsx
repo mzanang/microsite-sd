@@ -17,6 +17,8 @@ export default async function KeamananAkunPage() {
   const view = (profile.role === "guru"
     ? profile.community_position === "ketua"
       ? "ketua"
+      : profile.community_position === "sekretaris"
+      ? "sekretaris"
       : "anggota"
     : profile.role === "kepala_sekolah"
     ? "ks"

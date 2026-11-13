@@ -44,7 +44,7 @@ export default async function CommunityWorkspacePage({ params }: PageProps) {
   if (profile.must_change_password) redirect("/komunitas-belajar/ganti-password");
   if (profile.role === "super_admin") redirect("/admin/dashboard");
 
-  const view = profile.role === "guru" ? (profile.community_position === "ketua" ? "ketua" : "anggota") : profile.role === "kepala_sekolah" ? "ks" : "pengawas";
+  const view = profile.role === "guru" ? (profile.community_position === "ketua" ? "ketua" : profile.community_position === "sekretaris" ? "sekretaris" : "anggota") : profile.role === "kepala_sekolah" ? "ks" : "pengawas";
   const needsFullDashboardData = menu === "grafik" || menu === "laporan_kegiatan";
   const data = needsFullDashboardData ? await getRoleDashboardData(profile, view as DashboardView) : await getRoleWorkspaceData(profile, view as DashboardView);
   const permission = data.permissions.find((item) => item.menu_key === definition.permissionKey);

@@ -112,6 +112,8 @@ export function AccountSecurityView({
       ? "Pengawas Dabin"
       : profile.community_position === "ketua"
       ? "Ketua Kombel"
+      : profile.community_position === "sekretaris"
+      ? "Sekretaris Kombel"
       : "Anggota Kombel";
 
   // Password validation rules

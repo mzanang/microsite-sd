@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
   const admin = createKbAdminClient();
   const scope = new URL(request.url).searchParams.get("scope");
-  const canSeeAllSubmissions = scope !== "mine" && (profile.role !== "guru" || profile.community_position === "ketua");
+  const canSeeAllSubmissions = scope !== "mine" && (profile.role !== "guru" || ["ketua", "sekretaris"].includes(profile.community_position ?? ""));
 
   const [
     { data: requirements, error: requirementError },

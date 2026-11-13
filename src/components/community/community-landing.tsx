@@ -27,9 +27,9 @@ import { schoolProfileLeft, schoolProfileRight } from "@/lib/community-school-pr
 type Room = { slug: string; title: string; description: string; meta: string; icon: LucideIcon; tone: string; iconTone: string };
 
 const rooms: Room[] = [
-  { slug: "sk-komunitas-belajar", title: "SK & Regulasi Kombel", description: "SK Kepala Sekolah dan pedoman kerja", meta: "Dokumen resmi", icon: ShieldCheck, tone: "bg-[#e3f2fd]", iconTone: "text-[#005bbf]" },
-  { slug: "materi-kegiatan", title: "Materi & Modul Ajar", description: "Bahan paparan dan perangkat ajar", meta: "Materi kegiatan", icon: BookOpen, tone: "bg-[#fff3e0]", iconTone: "text-[#e65100]" },
-  { slug: "daftar-hadir", title: "Daftar Hadir", description: "Daftar hadir dan catatan rapat", meta: "Buka presensi", icon: CheckSquare, tone: "bg-[#e8f5e9]", iconTone: "text-[#2e7d32]" },
+  { slug: "sk-komunitas-belajar", title: "SK & Regulasi Kombel", description: "SK Kepala Sekolah", meta: "Dokumen resmi", icon: ShieldCheck, tone: "bg-[#e3f2fd]", iconTone: "text-[#005bbf]" },
+  { slug: "materi-kegiatan", title: "Materi", description: "Materi", meta: "Materi kegiatan", icon: BookOpen, tone: "bg-[#fff3e0]", iconTone: "text-[#e65100]" },
+  { slug: "daftar-hadir", title: "Daftar Hadir", description: "Daftar hadir", meta: "Buka presensi", icon: CheckSquare, tone: "bg-[#e8f5e9]", iconTone: "text-[#2e7d32]" },
   { slug: "upload-tugas-kombel", title: "Tugas Kombel", description: "Daftar tugas dan karya yang diberikan", meta: "Lihat tugas", icon: Upload, tone: "bg-[#fce4ec]", iconTone: "text-[#c2185b]" },
   { slug: "dokumentasi-kegiatan", title: "Dokumentasi & Galeri", description: "Catatan visual kegiatan komunitas", meta: "Lihat dokumentasi", icon: Camera, tone: "bg-[#ede7f6]", iconTone: "text-[#6a1b9a]" },
   { slug: "praktik-baik-guru", title: "Praktik Baik Guru", description: "Berbagi strategi pembelajaran", meta: "Jelajahi praktik", icon: UsersRound, tone: "bg-[#e0f7fa]", iconTone: "text-[#00677d]" },
@@ -67,7 +67,7 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
         <section id="ruang-kolaborasi" className="mx-auto w-full max-w-[1240px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20">
           <div className="mx-auto mb-10 max-w-2xl text-center">
             <h2 className="text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Ruang Kolaborasi Komunitas Belajar</h2>
-            <p className="mt-3 text-sm leading-6 text-[#414754] sm:text-base">Akses cepat layanan komunitas untuk mendukung keteraturan administrasi, penguatan modul ajar, dan peningkatan mutu belajar.</p>
+            <p className="mt-3 text-sm leading-6 text-[#414754] sm:text-base">Ruang berbagi, belajar, dan berkolaborasi untuk meningkatkan kualitas pembelajaran.</p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{filteredRooms.map((room) => <RoomCard key={room.slug} room={room} />)}</div>
           {!filteredRooms.length && <div className="mt-4 border border-dashed border-[#c1c6d6] bg-white px-6 py-10 text-center"><Search className="mx-auto text-[#727785]" size={25} aria-hidden="true" /><p className="mt-3 font-bold text-[#191c1e]">Ruang tidak ditemukan</p><p className="mt-1 text-sm text-[#414754]">Coba kata kunci lain atau hapus pencarian.</p></div>}
@@ -104,7 +104,7 @@ function FooterLinks({ title, links }: { title: string; links: { label: string; 
 }
 
 function ProfileCard({ profile }: { profile: PublicCommunityProfile }) {
-  const roleLabel = profile.community_position === "ketua" ? "Ketua" : "Anggota";
+  const roleLabel = profile.community_position === "ketua" ? "Ketua" : profile.community_position === "sekretaris" ? "Sekretaris" : "Anggota";
   return <article className="border border-[#e2e8f0] bg-white p-5 shadow-[0_2px_8px_-2px_rgba(15,23,42,.04)]"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e3f2fd] text-[#005bbf]"><UserRound size={20} aria-hidden="true" /></div><h3 className="mt-5 text-base font-bold text-[#191c1e]">{profile.name}</h3><p className="mt-1 text-sm text-[#475569]">{profile.teacher_type}</p><p className="mt-4 text-sm font-bold text-[#005bbf]">{roleLabel}</p>{profile.title && <p className="mt-1 text-xs text-[#64748b]">{profile.title}</p>}</article>;
 }
 

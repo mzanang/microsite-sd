@@ -18,7 +18,7 @@ export type KbProfile = {
   teaching_grade: number | null;
   teaching_grades: number[];
   public_title: string | null;
-  community_position: "ketua" | "anggota" | null;
+  community_position: "ketua" | "sekretaris" | "anggota" | null;
   is_active: boolean;
   is_public: boolean;
   must_change_password: boolean;
@@ -63,10 +63,15 @@ export const getCurrentKbProfile = cache(async (): Promise<KbProfile | null> => 
 
 export function getKbDashboardPath(profile: Pick<KbProfile, "role" | "community_position">) {
   if (profile.role === "super_admin") return "/admin/dashboard";
+  if (profile.role === "guru" && profile.community_position === "sekretaris") return "/komunitas-belajar/sekretaris/dashboard";
   if (profile.role === "guru" && profile.community_position === "ketua") return "/komunitas-belajar/ketua/dashboard";
   if (profile.role === "guru") return "/komunitas-belajar/anggota/dashboard";
   if (profile.role === "kepala_sekolah") return "/komunitas-belajar/ks/dashboard";
   return "/komunitas-belajar/pengawas/dashboard";
+}
+
+export function isKbCommunityLeader(profile: Pick<KbProfile, "role" | "community_position"> | null | undefined) {
+  return Boolean(profile?.role === "guru" && ["ketua", "sekretaris"].includes(profile.community_position ?? ""));
 }
 
 export const canManageKbUsers = cache(async (): Promise<boolean> => {
@@ -87,7 +92,7 @@ export const canManageKbUsers = cache(async (): Promise<boolean> => {
 
 export async function canManageKbCommunityDocuments() {
   const kbProfile = await getCurrentKbProfile();
-  if (kbProfile?.role === "super_admin" || (kbProfile?.role === "guru" && kbProfile.community_position === "ketua")) return true;
+  if (kbProfile?.role === "super_admin" || isKbCommunityLeader(kbProfile)) return true;
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();

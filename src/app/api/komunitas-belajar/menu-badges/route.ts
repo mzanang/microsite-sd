@@ -8,6 +8,6 @@ export async function GET() {
   const profile = await getCurrentKbProfile();
   if (!profile) return NextResponse.json({ error: "Sesi tidak ditemukan." }, { status: 401 });
   if (profile.role === "super_admin") return NextResponse.json({ badges: {} });
-  const view = profile.role === "guru" ? (profile.community_position === "ketua" ? "ketua" : "anggota") : profile.role === "kepala_sekolah" ? "ks" : "pengawas";
+  const view = profile.role === "guru" ? (profile.community_position === "ketua" ? "ketua" : profile.community_position === "sekretaris" ? "sekretaris" : "anggota") : profile.role === "kepala_sekolah" ? "ks" : "pengawas";
   return NextResponse.json({ badges: await getRoleMenuBadges(profile, view as DashboardView) });
 }

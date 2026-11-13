@@ -187,18 +187,20 @@ export function AttendanceWorkspace({ canCreate, canMark, canExport, canSeeDetai
 function attendanceLabel(status: string) { return status === "izin" ? "Izin" : status === "sakit" ? "Sakit" : status === "alpa" ? "Tanpa Keterangan" : status === "hadir" ? "Hadir" : "Belum Isi"; }
 
 function getAttendanceParticipants(participants: Participant[]) {
-  return participants.filter((participant) => participant.role === "kepala_sekolah" || (participant.role === "guru" && (participant.community_position === "ketua" || participant.community_position === "anggota"))).sort((a, b) => participantRank(a) - participantRank(b) || a.full_name.localeCompare(b.full_name, "id"));
+  return participants.filter((participant) => participant.role === "kepala_sekolah" || (participant.role === "guru" && ["ketua", "sekretaris", "anggota"].includes(participant.community_position ?? ""))).sort((a, b) => participantRank(a) - participantRank(b) || a.full_name.localeCompare(b.full_name, "id"));
 }
 
 function participantRank(participant: Participant) {
   if (participant.role === "kepala_sekolah") return 0;
   if (participant.role === "guru" && participant.community_position === "ketua") return 1;
-  return 2;
+  if (participant.role === "guru" && participant.community_position === "sekretaris") return 2;
+  return 3;
 }
 
 function participantRoleLabel(participant: Participant) {
   if (participant.role === "kepala_sekolah") return "Kepala Sekolah";
   if (participant.role === "guru" && participant.community_position === "ketua") return "Ketua";
+  if (participant.role === "guru" && participant.community_position === "sekretaris") return "Sekretaris";
   return "Anggota";
 }
 

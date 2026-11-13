@@ -25,7 +25,7 @@ async function insertMissingNotifications(admin: NotificationAdmin, rows: Notifi
 
 async function getActiveMembers(admin: NotificationAdmin) {
   const { data } = await admin.from("kb_profiles").select("id, community_position").eq("role", "guru").eq("is_active", true);
-  return (data ?? []).filter((member) => member.community_position !== "ketua");
+  return (data ?? []).filter((member) => !["ketua", "sekretaris"].includes(member.community_position ?? ""));
 }
 
 export async function notifyMembersAboutTask(admin: NotificationAdmin, task: { id: string; name: string; due_at: string | null }) {

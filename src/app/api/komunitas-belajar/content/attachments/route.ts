@@ -8,7 +8,7 @@ const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function POST(request: Request) {
   const profile = await getCurrentKbProfile();
-  if (!profile || (profile.role !== "super_admin" && !(profile.role === "guru" && profile.community_position === "ketua"))) return NextResponse.json({ error: "Hanya Ketua Kombel yang dapat mengunggah lampiran." }, { status: 403 });
+  if (!profile || (profile.role !== "super_admin" && !(profile.role === "guru" && ["ketua", "sekretaris"].includes(profile.community_position ?? "")))) return NextResponse.json({ error: "Hanya pengelola komunitas yang dapat mengunggah lampiran." }, { status: 403 });
   const files = (await request.formData()).getAll("files").filter((value): value is File => value instanceof File && value.size > 0);
   if (!files.length || files.length > maxFiles) return NextResponse.json({ error: "Pilih 1 sampai 5 foto." }, { status: 400 });
   if (files.some((file) => file.size > maxFileSize || !allowedTypes.has(file.type))) return NextResponse.json({ error: "Setiap foto wajib JPG, PNG, atau WEBP dengan ukuran maksimal 1 MB." }, { status: 400 });

@@ -6,7 +6,7 @@ export type PublicCommunityProfile = {
   name: string;
   teacher_type: string;
   title: string;
-  community_position: "ketua" | "anggota" | null;
+  community_position: "ketua" | "sekretaris" | "anggota" | null;
 };
 
 export type PublicTeamMember = {
@@ -16,7 +16,7 @@ export type PublicTeamMember = {
   teacher_type: string | null;
   teaching_subject: string | null;
   teaching_grade: number | null;
-  community_position: "ketua" | "anggota" | null;
+  community_position: "ketua" | "sekretaris" | "anggota" | null;
   display_role: string;
   grade_or_subject: string;
 };
@@ -62,7 +62,7 @@ function parseProfile(value: unknown): PublicCommunityProfile | null {
     name,
     teacher_type: typeof profile.teacher_type === "string" && profile.teacher_type.trim() ? profile.teacher_type : "Guru",
     title: typeof profile.title === "string" ? profile.title : "",
-    community_position: profile.community_position === "ketua" || profile.community_position === "anggota" ? profile.community_position : null,
+    community_position: ["ketua", "sekretaris", "anggota"].includes(String(profile.community_position)) ? profile.community_position as PublicCommunityProfile["community_position"] : null,
   };
 }
 
@@ -71,7 +71,7 @@ function parseOverview(value: unknown): PublicCommunityData | null {
   const overview = value as Record<string, unknown>;
   const schoolValue = overview.school && typeof overview.school === "object" ? overview.school as Record<string, unknown> : null;
   const schoolName = typeof schoolValue?.name === "string" && schoolValue.name.trim() ? schoolValue.name : fallbackData.school.name;
-  const teachers = Array.isArray(overview.teachers) ? overview.teachers.map(parseProfile).filter((profile): profile is PublicCommunityProfile => Boolean(profile)).sort((a, b) => Number(b.community_position === "ketua") - Number(a.community_position === "ketua") || a.name.localeCompare(b.name, "id")) : [];
+  const teachers = Array.isArray(overview.teachers) ? overview.teachers.map(parseProfile).filter((profile): profile is PublicCommunityProfile => Boolean(profile)).sort((a, b) => Number(b.community_position === "ketua") - Number(a.community_position === "ketua") || Number(b.community_position === "sekretaris") - Number(a.community_position === "sekretaris") || a.name.localeCompare(b.name, "id")) : [];
   return {
     school: {
       name: schoolName,
@@ -111,6 +111,7 @@ export async function getPublicCommunityData(): Promise<PublicCommunityData> {
         if (p.role === "kepala_sekolah") display_role = "Kepala Sekolah";
         else if (p.role === "pengawas_dabin") display_role = "Pengawas Dabin";
         else if (p.community_position === "ketua") display_role = "Ketua";
+        else if (p.community_position === "sekretaris") display_role = "Sekretaris";
 
         let grade_or_subject = "-";
         if (p.role === "guru") {
@@ -136,17 +137,14 @@ export async function getPublicCommunityData(): Promise<PublicCommunityData> {
         };
       });
 
-      // Strict role sorting priority:
-      // 1. Kepala Sekolah
-      // 2. Pengawas Dabin
-      // 3. Ketua
-      // 4. Anggota (alphabetical)
+      // Strict role sorting priority: Pengawas, Kepala Sekolah, Ketua, Sekretaris, Anggota.
       teamMembers.sort((a, b) => {
         const priority = (m: PublicTeamMember) => {
-          if (m.role === "kepala_sekolah") return 1;
-          if (m.role === "pengawas_dabin") return 2;
+          if (m.role === "pengawas_dabin") return 1;
+          if (m.role === "kepala_sekolah") return 2;
           if (m.community_position === "ketua") return 3;
-          return 4;
+          if (m.community_position === "sekretaris") return 4;
+          return 5;
         };
         const diff = priority(a) - priority(b);
         if (diff !== 0) return diff;
@@ -161,7 +159,7 @@ export async function getPublicCommunityData(): Promise<PublicCommunityData> {
         teaching_subject: null,
         teaching_grade: null,
         community_position: t.community_position,
-        display_role: t.community_position === "ketua" ? "Ketua" : "Anggota",
+        display_role: t.community_position === "ketua" ? "Ketua" : t.community_position === "sekretaris" ? "Sekretaris" : "Anggota",
         grade_or_subject: t.title || "-",
       }));
     }
@@ -256,7 +254,7 @@ export async function getPublicCommunityContent(): Promise<PublicCommunityConten
       ? await admin.from("kb_submissions").select("requirement_id, teacher_profile_id").in("requirement_id", taskIds)
       : { data: [] as Array<{ requirement_id: string; teacher_profile_id: string }> };
     const { data: activeParticipants } = await admin.from("kb_profiles").select("id, role, community_position").eq("is_active", true).neq("role", "pengawas_dabin").neq("role", "super_admin");
-    const requiredParticipants = (activeParticipants ?? []).filter((participant) => participant.role === "kepala_sekolah" || (participant.role === "guru" && (participant.community_position === "ketua" || participant.community_position === "anggota")));
+    const requiredParticipants = (activeParticipants ?? []).filter((participant) => participant.role === "kepala_sekolah" || (participant.role === "guru" && ["ketua", "sekretaris", "anggota"].includes(participant.community_position ?? "")));
     const participantIds = new Set(requiredParticipants.map((participant) => participant.id));
     const participantCount = requiredParticipants.length;
     const taskParticipantCount = (activeParticipants ?? []).filter((participant) => participant.role === "guru").length;

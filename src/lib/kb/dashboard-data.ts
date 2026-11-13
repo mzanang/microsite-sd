@@ -4,7 +4,7 @@ import { cache } from "react";
 import { createKbAdminClient, type KbProfile } from "@/lib/kb/auth";
 import { getLinkedSessionMap } from "@/lib/kb/linked-session-data";
 
-export type DashboardView = "ketua" | "anggota" | "ks" | "pengawas";
+export type DashboardView = "ketua" | "sekretaris" | "anggota" | "ks" | "pengawas";
 export type DashboardPermission = { menu_key: string; access_level: "lihat" | "kelola" | "monitoring" };
 export type DashboardStat = { label: string; value: number; tone: "blue" | "green" | "purple" | "orange" };
 export type DashboardChartPoint = { month: string; submissions: number; reviewed: number };
@@ -64,6 +64,7 @@ const statusColors = {
 
 const fallbackPermissions: Record<DashboardView, DashboardPermission[]> = {
   ketua: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "memberikan_tugas", "daftar_hadir", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "dashboard" || menu_key === "profil" ? "lihat" : "kelola" })),
+  sekretaris: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "memberikan_tugas", "daftar_hadir", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "dashboard" || menu_key === "profil" ? "lihat" : "kelola" })),
   anggota: ["dashboard", "materi", "forum", "upload_tugas", "daftar_hadir", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "dashboard" || menu_key === "materi" || menu_key === "forum" ? "lihat" : "kelola" })),
   ks: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "daftar_hadir", "verifikasi", "grafik", "monitoring", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "daftar_hadir" ? "monitoring" : menu_key === "verifikasi" || menu_key === "profil" ? "kelola" : "lihat" })),
   pengawas: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "daftar_hadir", "verifikasi", "grafik", "monitoring", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "daftar_hadir" ? "monitoring" : menu_key === "profil" ? "kelola" : "lihat" })),
@@ -210,7 +211,7 @@ export async function getRoleMenuBadges(profile: KbProfile, view: DashboardView,
       const submission = submittedByRequirement.get(requirement.id);
       return !submission || effectiveStatus(submission) === "perlu_perbaikan";
     }).length;
-  } else if (view === "ks" || view === "ketua") {
+  } else if (view === "ks" || view === "ketua" || view === "sekretaris") {
     const submissions = providedSubmissions ?? ((await admin.from("kb_submissions").select("id, requirement_id, status, created_at, updated_at, submitted_at, teacher_profile_id").order("updated_at", { ascending: false })).data ?? []) as SubmissionRow[];
     const submissionIds = submissions.map((submission) => submission.id);
     const { data: reviews } = submissionIds.length
@@ -219,11 +220,11 @@ export async function getRoleMenuBadges(profile: KbProfile, view: DashboardView,
     const latestReviews = latestKsReviews((reviews ?? []) as ReviewRow[]);
     const count = submissions.filter((submission) => ["menunggu_pemeriksaan", "menunggu_verifikasi_ulang"].includes(effectiveSubmissionStatus(submission, latestReviews.get(submission.id)))).length;
     if (view === "ks") badges.verifikasi = count;
-    if (view === "ketua") badges.pengumpulan_anggota = count;
+    if (view === "ketua" || view === "sekretaris") badges.pengumpulan_anggota = count;
   }
 
   // Attendance badge: only query sessions currently active right now
-  if (view === "ketua" || view === "anggota" || view === "ks") {
+  if (view === "ketua" || view === "sekretaris" || view === "anggota" || view === "ks") {
     const now = new Date().toISOString();
     const [{ data: activeSessions }, { data: records }] = await Promise.all([
       admin.from("kb_attendance_sessions").select("id").lte("active_from", now).gte("active_until", now),
@@ -243,7 +244,7 @@ function statsFor(view: DashboardView, values: { memberCount: number; activeRequ
     { label: "Menunggu pemeriksaan", value: values.pendingCount, tone: "purple" },
     { label: "Terverifikasi", value: values.completeCount, tone: "orange" },
   ];
-  if (view === "ketua") return [
+  if (view === "ketua" || view === "sekretaris") return [
     { label: "Anggota aktif", value: values.memberCount, tone: "blue" },
     { label: "Pengumpulan masuk", value: values.submissionCount, tone: "purple" },
     { label: "Menunggu pemeriksaan", value: values.pendingCount, tone: "orange" },

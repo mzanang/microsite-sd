@@ -30,7 +30,7 @@ export default function CommunityLoginPage() {
       });
       const result = await response.json().catch(() => ({})) as { error?: string; ok?: boolean; role?: string; community_position?: string | null; must_change_password?: boolean };
       if (!response.ok || !result.ok) throw new Error(result.error || "Login gagal.");
-      router.push(result.must_change_password ? "/komunitas-belajar/ganti-password" : result.role === "super_admin" ? "/admin/dashboard" : result.role === "kepala_sekolah" ? "/komunitas-belajar/ks/dashboard" : result.role === "pengawas_dabin" ? "/komunitas-belajar/pengawas/dashboard" : result.community_position === "ketua" ? "/komunitas-belajar/ketua/dashboard" : "/komunitas-belajar/anggota/dashboard");
+      router.push(result.must_change_password ? "/komunitas-belajar/ganti-password" : result.role === "super_admin" ? "/admin/dashboard" : result.role === "kepala_sekolah" ? "/komunitas-belajar/ks/dashboard" : result.role === "pengawas_dabin" ? "/komunitas-belajar/pengawas/dashboard" : result.community_position === "ketua" ? "/komunitas-belajar/ketua/dashboard" : result.community_position === "sekretaris" ? "/komunitas-belajar/sekretaris/dashboard" : "/komunitas-belajar/anggota/dashboard");
       router.refresh();
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "Login gagal.");

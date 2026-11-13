@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
   // Internal Komunitas Belajar routes protection
   const isProtectedKbPath =
     pathname.startsWith("/komunitas-belajar/ketua") ||
+    pathname.startsWith("/komunitas-belajar/sekretaris") ||
     pathname.startsWith("/komunitas-belajar/anggota") ||
     pathname.startsWith("/komunitas-belajar/ks") ||
     pathname.startsWith("/komunitas-belajar/pengawas") ||
@@ -75,6 +76,7 @@ export const config = {
     "/admin/:path*",
     "/api/admin/:path*",
     "/komunitas-belajar/ketua/:path*",
+    "/komunitas-belajar/sekretaris/:path*",
     "/komunitas-belajar/anggota/:path*",
     "/komunitas-belajar/ks/:path*",
     "/komunitas-belajar/pengawas/:path*",

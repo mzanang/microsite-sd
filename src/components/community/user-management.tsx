@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Check, ClipboardCopy, Eye, EyeOff, KeyRound, Pencil, Plus, ShieldAlert, Trash2, X } from "lucide-react";
 
 type UserRole = "kepala_sekolah" | "guru" | "pengawas_dabin";
-type CommunityPosition = "ketua" | "anggota";
+type CommunityPosition = "ketua" | "sekretaris" | "anggota";
 type User = {
   id: string;
   full_name: string;
@@ -40,7 +40,7 @@ type EditForm = {
 };
 
 const roleLabels: Record<User["role"], string> = { super_admin: "Super Admin", kepala_sekolah: "Kepala Sekolah", guru: "Guru", pengawas_dabin: "Pengawas Dabin" };
-const positionLabels: Record<CommunityPosition, string> = { ketua: "Ketua", anggota: "Anggota" };
+const positionLabels: Record<CommunityPosition, string> = { ketua: "Ketua", sekretaris: "Sekretaris", anggota: "Anggota" };
 const grades = [1, 2, 3, 4, 5, 6];
 
 export function UserManagement({ initialUsers }: { initialUsers: User[] }) {
@@ -336,7 +336,7 @@ function RoleField({ value, onChange }: { value: UserRole; onChange: (value: Use
 }
 
 function PositionField({ name, value, onChange }: { name: string; value: CommunityPosition; onChange: (value: CommunityPosition) => void }) {
-  return <label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Jabatan</span><select name={name} value={value} onChange={(event) => onChange(event.target.value as CommunityPosition)} className={selectClass}><option value="ketua">Ketua</option><option value="anggota">Anggota</option></select></label>;
+  return <label className="block"><span className="mb-2 block text-sm font-bold text-[#34577f]">Jabatan</span><select name={name} value={value} onChange={(event) => onChange(event.target.value as CommunityPosition)} className={selectClass}><option value="ketua">Ketua</option><option value="sekretaris">Sekretaris</option><option value="anggota">Anggota</option></select></label>;
 }
 
 function Field({ label, name, placeholder, required, inputMode, pattern, type = "text" }: { label: string; name: string; placeholder: string; required?: boolean; inputMode?: "numeric" | "text"; pattern?: string; type?: string }) {

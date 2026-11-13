@@ -11,7 +11,7 @@ const createUserSchema = z.object({
   teaching_grade: z.preprocess((value) => value === "" || value === undefined || value === null ? null : value, z.coerce.number().int().min(1).max(6).nullable().optional()),
   teaching_grades: z.array(z.coerce.number().int().min(1).max(6)).optional().default([]),
   public_title: z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional().default("")),
-  community_position: z.enum(["ketua", "anggota"]).optional().default("anggota"),
+  community_position: z.enum(["ketua", "sekretaris", "anggota"]).optional().default("anggota"),
   recovery_email: z.string().trim().email("Format email pemulihan tidak valid.").or(z.literal("")).optional(),
   is_public: z.boolean().optional().default(false),
 });
@@ -26,7 +26,7 @@ const updateUserSchema = z.object({
   teaching_grade: z.preprocess((value) => value === "" || value === undefined || value === null ? null : value, z.coerce.number().int().min(1).max(6).nullable().optional()),
   teaching_grades: z.array(z.coerce.number().int().min(1).max(6)).optional().default([]),
   public_title: z.preprocess((value) => value === null ? undefined : value, z.string().trim().max(120).optional().default("")),
-  community_position: z.enum(["ketua", "anggota"]).nullable().optional(),
+  community_position: z.enum(["ketua", "sekretaris", "anggota"]).nullable().optional(),
   recovery_email: z.string().trim().email("Format email tidak valid.").or(z.literal("")).optional().nullable(),
   is_active: z.boolean().default(true),
   is_public: z.boolean().default(false),
@@ -35,7 +35,7 @@ const updateUserSchema = z.object({
 function communityDatabaseError(error: { code?: string; message?: string }) {
   const code = String(error.code ?? "");
   const message = String(error.message ?? "").toLowerCase();
-  if (["42P01", "PGRST205"].includes(code) || message.includes("kb_profiles")) return "Database Komunitas Belajar belum siap. Terapkan migrasi komunitas 202611090001_public_community_core.sql, 202611090003_kb_operational_schema.sql, 202611090004_community_public_resources.sql, 202611100001_community_position.sql, dan 202611100010_kb_teacher_subject_scope.sql terlebih dahulu.";
+  if (["42P01", "PGRST205"].includes(code) || message.includes("kb_profiles")) return "Database Komunitas Belajar belum siap. Terapkan migrasi komunitas yang tersedia, termasuk 202611130001_kb_secretary_position.sql.";
   if (code === "42703") return "Struktur database Komunitas Belajar belum lengkap. Terapkan ulang migrasi komunitas yang tersedia.";
   return "Profil pengguna gagal disimpan.";
 }

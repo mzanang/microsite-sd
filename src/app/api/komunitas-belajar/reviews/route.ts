@@ -16,7 +16,7 @@ export async function GET() {
   // Allow kepala_sekolah, pengawas_dabin, super_admin, AND ketua (guru with community_position === 'ketua')
   const isAllowed =
     ["kepala_sekolah", "pengawas_dabin", "super_admin"].includes(profile.role) ||
-    (profile.role === "guru" && profile.community_position === "ketua");
+    (profile.role === "guru" && ["ketua", "sekretaris"].includes(profile.community_position ?? ""));
 
   if (!isAllowed) return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
 

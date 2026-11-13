@@ -19,11 +19,11 @@ const maxAttendanceFileSize = 1 * 1024 * 1024;
 const attendanceFileTypes: Record<string, string> = { "image/jpeg": "jpg", "application/pdf": "pdf" };
 
 function canCreateSession(profile: Awaited<ReturnType<typeof getCurrentKbProfile>>) {
-  return Boolean(profile && (profile.role === "super_admin" || (profile.role === "guru" && profile.community_position === "ketua")));
+  return Boolean(profile && (profile.role === "super_admin" || (profile.role === "guru" && ["ketua", "sekretaris"].includes(profile.community_position ?? ""))));
 }
 
 function isRequiredAttendanceParticipant(profile: { role: string; community_position: string | null }) {
-  return profile.role === "kepala_sekolah" || (profile.role === "guru" && (profile.community_position === "ketua" || profile.community_position === "anggota"));
+  return profile.role === "kepala_sekolah" || (profile.role === "guru" && ["ketua", "sekretaris", "anggota"].includes(profile.community_position ?? ""));
 }
 
 export async function GET() {
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     const now = Date.now();
     if ((session.active_from && now < new Date(session.active_from).getTime()) || (session.active_until && now > new Date(session.active_until).getTime())) return NextResponse.json({ error: "Pengisian presensi sedang tidak berada dalam waktu aktif." }, { status: 409 });
     const { data: existingRecord } = await admin.from("kb_attendance_records").select("id").eq("session_id", mark.data.session_id).eq("profile_id", profile.id).maybeSingle();
-    if (existingRecord && profile.role === "guru" && profile.community_position !== "ketua") return NextResponse.json({ error: "Kehadiran Anda sudah tercatat dan hanya dapat diisi satu kali." }, { status: 409 });
+    if (existingRecord && profile.role === "guru" && !["ketua", "sekretaris"].includes(profile.community_position ?? "")) return NextResponse.json({ error: "Kehadiran Anda sudah tercatat dan hanya dapat diisi satu kali." }, { status: 409 });
     const { data, error } = await admin.from("kb_attendance_records").upsert({ session_id: mark.data.session_id, profile_id: profile.id, status: mark.data.status, note: mark.data.note, marked_at: new Date().toISOString() }, { onConflict: "session_id,profile_id" }).select("id, session_id, profile_id, status, note, marked_at").single();
     if (error || !data) return NextResponse.json({ error: "Kehadiran gagal disimpan." }, { status: 503 });
     return NextResponse.json({ record: data });

@@ -19,7 +19,7 @@ const entrySchema = z.object({
 const idSchema = z.string().uuid();
 
 function canManage(profile: Awaited<ReturnType<typeof getCurrentKbProfile>>) {
-  return Boolean(profile && (profile.role === "super_admin" || (profile.role === "guru" && profile.community_position === "ketua")));
+  return Boolean(profile && (profile.role === "super_admin" || (profile.role === "guru" && ["ketua", "sekretaris"].includes(profile.community_position ?? ""))));
 }
 
 function canCreate(profile: Awaited<ReturnType<typeof getCurrentKbProfile>>, menu: string) {

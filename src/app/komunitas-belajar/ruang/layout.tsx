@@ -14,6 +14,8 @@ export default async function RuangLayout({ children }: { children: ReactNode })
     profile.role === "guru"
       ? profile.community_position === "ketua"
         ? "ketua"
+        : profile.community_position === "sekretaris"
+        ? "sekretaris"
         : "anggota"
       : profile.role === "kepala_sekolah"
       ? "ks"

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Filter, Search, UserCheck, UserRound, Users } from "lucide-react";
 import type { PublicTeamMember } from "@/lib/community-data";
 
-type FilterRole = "all" | "kepala_sekolah" | "pengawas_dabin" | "ketua" | "anggota";
+type FilterRole = "all" | "kepala_sekolah" | "pengawas_dabin" | "ketua" | "sekretaris" | "anggota";
 
 export function CommunityTeamTable({ members }: { members: PublicTeamMember[] }) {
   const [search, setSearch] = useState("");
@@ -12,9 +12,10 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
 
   const filterOptions: { key: FilterRole; label: string }[] = [
     { key: "all", label: "Semua" },
-    { key: "kepala_sekolah", label: "Kepala Sekolah" },
     { key: "pengawas_dabin", label: "Pengawas Dabin" },
+    { key: "kepala_sekolah", label: "Kepala Sekolah" },
     { key: "ketua", label: "Ketua" },
+    { key: "sekretaris", label: "Sekretaris" },
     { key: "anggota", label: "Anggota" },
   ];
 
@@ -25,7 +26,8 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
       if (selectedFilter === "kepala_sekolah" && member.role !== "kepala_sekolah") return false;
       if (selectedFilter === "pengawas_dabin" && member.role !== "pengawas_dabin") return false;
       if (selectedFilter === "ketua" && member.community_position !== "ketua") return false;
-      if (selectedFilter === "anggota" && (member.role !== "guru" || member.community_position === "ketua")) return false;
+      if (selectedFilter === "sekretaris" && member.community_position !== "sekretaris") return false;
+      if (selectedFilter === "anggota" && (member.role !== "guru" || ["ketua", "sekretaris"].includes(member.community_position ?? ""))) return false;
 
       // Text search
       const q = search.trim().toLowerCase();
@@ -47,7 +49,8 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
       kepala_sekolah: members.filter((m) => m.role === "kepala_sekolah").length,
       pengawas_dabin: members.filter((m) => m.role === "pengawas_dabin").length,
       ketua: members.filter((m) => m.community_position === "ketua").length,
-      anggota: members.filter((m) => m.role === "guru" && m.community_position !== "ketua").length,
+      sekretaris: members.filter((m) => m.community_position === "sekretaris").length,
+      anggota: members.filter((m) => m.role === "guru" && !["ketua", "sekretaris"].includes(m.community_position ?? "")).length,
     };
   }, [members]);
 
@@ -287,8 +290,8 @@ function RoleBadge({
     );
   }
 
-  // Ketua: Hijau
-  if (position === "ketua") {
+  // Ketua dan Sekretaris: Hijau
+  if (position === "ketua" || position === "sekretaris") {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
