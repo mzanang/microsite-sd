@@ -22,7 +22,12 @@ import { CommunityNav } from "@/components/community/community-nav";
 import { CommunityTeamTable } from "@/components/community/community-team-table";
 import { AccessibilityWidget, type AccessibilityTheme } from "@/components/community/accessibility-widget";
 import type { PublicCommunityData, PublicCommunityProfile } from "@/lib/community-data";
-import { schoolProfileLeft, schoolProfileRight } from "@/lib/community-school-profile";
+import {
+  type CommunityLandingConfig,
+  defaultCommunityLandingConfig,
+  type FaqItem,
+  type SchoolProfileField,
+} from "@/lib/community-landing-config";
 
 type Room = { slug: string; title: string; description: string; meta: string; icon: LucideIcon; tone: string; iconTone: string };
 
@@ -36,20 +41,47 @@ const rooms: Room[] = [
   { slug: "forum-diskusi-guru", title: "Forum Diskusi Guru", description: "Ruang bertukar pengalaman", meta: "Buka ruang diskusi", icon: UsersRound, tone: "bg-[#fff8e1]", iconTone: "text-[#a15c00]" },
 ];
 
-const faqItems = [
-  { question: "Bagaimana cara membuka materi dan dokumen komunitas?", answer: "Pilih ruang yang tersedia pada halaman ini. Konten publik dapat dibuka tanpa login jika sudah ditambahkan oleh pengelola." },
-  { question: "Bagaimana cara mengunggah tugas kombel?", answer: "Buka ruang Tugas Kombel, pilih tugas yang diberikan Ketua, lalu kirim dokumen atau tautan melalui ruang pengumpulan." },
-  { question: "Siapa yang dapat masuk ke portal?", answer: "Akun operasional dibuat oleh Super Admin untuk Kepala Sekolah, Pengawas Dabin, dan Guru. Tidak tersedia pendaftaran mandiri." },
-  { question: "Apa yang dilakukan jika belum memiliki akun?", answer: "Hubungi pengelola sekolah untuk dibuatkan akun. Jangan membagikan kata sandi kepada orang lain." },
-];
-
-export function CommunityLanding({ data }: { data: PublicCommunityData }) {
+export function CommunityLanding({
+  data,
+  initialConfig,
+}: {
+  data: PublicCommunityData;
+  initialConfig?: CommunityLandingConfig;
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [accessibilityTheme, setAccessibilityTheme] = useState<AccessibilityTheme>("light");
+
+  // Dynamic Landing Configuration (Profil Sekolah & FAQ)
+  const [schoolProfileLeft, setSchoolProfileLeft] = useState<SchoolProfileField[]>(
+    initialConfig?.schoolProfileLeft ?? defaultCommunityLandingConfig.schoolProfileLeft
+  );
+  const [schoolProfileRight, setSchoolProfileRight] = useState<SchoolProfileField[]>(
+    initialConfig?.schoolProfileRight ?? defaultCommunityLandingConfig.schoolProfileRight
+  );
+  const [faqList, setFaqList] = useState<FaqItem[]>(
+    initialConfig?.faqItems ?? defaultCommunityLandingConfig.faqItems
+  );
+
   useEffect(() => {
     const saved = window.localStorage.getItem("kb-public-accessibility");
     if (saved?.includes('"theme":"dark"')) setAccessibilityTheme("dark");
+
+    // Client-side sync to fetch latest published config if updated
+    fetch("/api/admin/komunitas-belajar/landing-config", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((json) => {
+        if (json?.config) {
+          if (json.config.schoolProfileLeft) setSchoolProfileLeft(json.config.schoolProfileLeft);
+          if (json.config.schoolProfileRight) setSchoolProfileRight(json.config.schoolProfileRight);
+          if (json.config.faqItems) setFaqList(json.config.faqItems);
+        }
+      })
+      .catch(() => {});
   }, []);
+
   const filteredRooms = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return rooms;
@@ -57,46 +89,127 @@ export function CommunityLanding({ data }: { data: PublicCommunityData }) {
   }, [searchQuery]);
 
   return (
-    <main className={`kb-public-root min-h-screen overflow-x-hidden font-[var(--font-plus-jakarta)] text-[#191c1e] ${accessibilityTheme === "dark" ? "kb-theme-dark" : "kb-theme-light"}`}>
-      <CommunityNav schoolName={data.school.name} logoUrl={data.school.logo_url} searchValue={searchQuery} onSearchChange={setSearchQuery} />
-      <div id="beranda" className="w-full scroll-mt-40 pt-[9rem] sm:pt-[9rem]">
-        <CommunityHero />
-      </div>
+    <>
+      <main className={`kb-public-root min-h-screen overflow-x-hidden font-[var(--font-plus-jakarta)] text-[#191c1e] ${accessibilityTheme === "dark" ? "kb-theme-dark" : "kb-theme-light"}`}>
+        <CommunityNav schoolName={data.school.name} logoUrl={data.school.logo_url} searchValue={searchQuery} onSearchChange={setSearchQuery} />
 
-      <div className="w-full">
-        <section id="ruang-kolaborasi" className="mx-auto w-full max-w-[1240px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20">
-          <div className="mx-auto mb-10 max-w-2xl text-center">
-            <h2 className="text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Ruang Kolaborasi Komunitas Belajar</h2>
-            <p className="mt-3 text-sm leading-6 text-[#414754] sm:text-base">Ruang berbagi, belajar, dan berkolaborasi untuk meningkatkan kualitas pembelajaran.</p>
+        <div id="beranda" className="w-full scroll-mt-40 pt-[9rem] sm:pt-[9rem]">
+          <CommunityHero />
+        </div>
+
+        <div className="w-full">
+          <section id="ruang-kolaborasi" className="mx-auto w-full max-w-[1240px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20">
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <h2 className="text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Ruang Kolaborasi Komunitas Belajar</h2>
+              <p className="mt-3 text-sm leading-6 text-[#414754] sm:text-base">Ruang berbagi, belajar, dan berkolaborasi untuk meningkatkan kualitas pembelajaran.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{filteredRooms.map((room) => <RoomCard key={room.slug} room={room} />)}</div>
+            {!filteredRooms.length && <div className="mt-4 border border-dashed border-[#c1c6d6] bg-white px-6 py-10 text-center"><Search className="mx-auto text-[#727785]" size={25} aria-hidden="true" /><p className="mt-3 font-bold text-[#191c1e]">Ruang tidak ditemukan</p><p className="mt-1 text-sm text-[#414754]">Coba kata kunci lain atau hapus pencarian.</p></div>}
+          </section>
+
+          <section id="profil-sekolah" className="mx-auto w-full max-w-[1240px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20 xl:scroll-mt-24">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.18em] text-[#005bbf]">Tentang sekolah</p>
+                <h2 className="mt-2 text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Profil Sekolah</h2>
+              </div>
+              <School className="text-[#005bbf]" size={30} aria-hidden="true" />
+            </div>
+            <article className="mt-8 border border-[#e2e8f0] bg-white p-4 shadow-[0_2px_8px_-2px_rgba(15,23,42,.04),0_1px_3px_-1px_rgba(15,23,42,.06)] sm:p-6">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <SchoolProfileTable fields={schoolProfileLeft.map((field) => field.label === "Nama Sekolah" ? { ...field, value: field.value || data.school.name } : field)} />
+                <SchoolProfileTable fields={schoolProfileRight.map((field) => field.label === "Kepala Sekolah" && data.principal ? { ...field, value: field.value || data.principal.name } : field)} />
+              </div>
+              <div className="mt-5 flex items-start gap-3 border-t border-[#e2e8f0] pt-5 text-sm leading-6 text-[#475569]">
+                <MapPin className="mt-0.5 shrink-0 text-[#005bbf]" size={18} aria-hidden="true" />
+                <a href="https://www.google.com/maps/search/?api=1&query=-6.969424050519738%2C109.0984724818786" target="_blank" rel="noreferrer" className="hover:text-[#005bbf] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]">
+                  {data.school.address || "Alamat sekolah belum ditambahkan."}
+                </a>
+              </div>
+            </article>
+          </section>
+
+          <CommunityTeamTable members={data.teamMembers || []} />
+
+          <section id="faq" className="mx-auto w-full max-w-[880px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20 xl:scroll-mt-24">
+            <div className="mb-10 text-center">
+              <p className="text-xs font-bold uppercase tracking-[.18em] text-[#005bbf]">Bantuan</p>
+              <h2 className="mt-2 text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Pertanyaan yang Sering Diajukan</h2>
+              <p className="mt-3 text-sm leading-6 text-[#414754]">Panduan singkat untuk mengakses ruang dan akun Komunitas Belajar Guru.</p>
+            </div>
+            <FaqList items={faqList} />
+          </section>
+        </div>
+
+        <footer className="bg-[#eceef0]">
+          <div className="mx-auto grid w-full max-w-[1240px] gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-4">
+                <Image src={data.school.logo_url} alt={`Logo ${data.school.name}`} width={64} height={64} className="h-16 w-16 shrink-0 object-contain" unoptimized />
+                <span className="text-lg font-bold text-[#005bbf]">Komunitas Belajar Sekolah</span>
+              </div>
+              <p className="mt-4 max-w-md text-sm leading-6 text-[#414754]">Kolaborasi pendidik SD Negeri Dukuhwaru 01</p>
+            </div>
+            <FooterLinks title="Layanan Kombel" links={rooms.slice(0, 5).map((room) => ({ label: room.title, href: `/komunitas-belajar/${room.slug}` }))} />
+            <FooterLinks title="Portal & Informasi" links={[{ label: "Portal Sekolah", href: "/" }, { label: "Profil Sekolah", href: "#profil-sekolah" }, { label: "Tim Komunitas", href: "#guru" }, { label: "Bantuan", href: "#faq" }]} />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{filteredRooms.map((room) => <RoomCard key={room.slug} room={room} />)}</div>
-          {!filteredRooms.length && <div className="mt-4 border border-dashed border-[#c1c6d6] bg-white px-6 py-10 text-center"><Search className="mx-auto text-[#727785]" size={25} aria-hidden="true" /><p className="mt-3 font-bold text-[#191c1e]">Ruang tidak ditemukan</p><p className="mt-1 text-sm text-[#414754]">Coba kata kunci lain atau hapus pencarian.</p></div>}
-        </section>
+          <div className="border-t border-[#cbd5e1] px-4 py-5 text-center text-xs text-[#475569] sm:px-6">© {new Date().getFullYear()} Komunitas Belajar Guru SD Negeri Dukuhwaru 01.</div>
+        </footer>
+      </main>
 
-        <section id="profil-sekolah" className="mx-auto w-full max-w-[1240px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20 xl:scroll-mt-24">
-          <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#005bbf]">Tentang sekolah</p><h2 className="mt-2 text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Profil Sekolah</h2></div><School className="text-[#005bbf]" size={30} aria-hidden="true" /></div>
-          <article className="mt-8 border border-[#e2e8f0] bg-white p-4 shadow-[0_2px_8px_-2px_rgba(15,23,42,.04),0_1px_3px_-1px_rgba(15,23,42,.06)] sm:p-6"><div className="grid gap-5 lg:grid-cols-2"><SchoolProfileTable fields={schoolProfileLeft.map((field) => field.label === "Nama Sekolah" ? { ...field, value: data.school.name } : field)} /><SchoolProfileTable fields={schoolProfileRight.map((field) => field.label === "Kepala Sekolah" && data.principal ? { ...field, value: data.principal.name } : field)} /></div><div className="mt-5 flex items-start gap-3 border-t border-[#e2e8f0] pt-5 text-sm leading-6 text-[#475569]"><MapPin className="mt-0.5 shrink-0 text-[#005bbf]" size={18} aria-hidden="true" /><a href="https://www.google.com/maps/search/?api=1&query=-6.969424050519738%2C109.0984724818786" target="_blank" rel="noreferrer" className="hover:text-[#005bbf] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]">{data.school.address || "Alamat sekolah belum ditambahkan."}</a></div></article>
-        </section>
-
-        <CommunityTeamTable members={data.teamMembers || []} />
-
-        <section id="faq" className="mx-auto w-full max-w-[880px] scroll-mt-40 px-4 py-16 sm:px-6 sm:py-20 xl:scroll-mt-24"><div className="mb-10 text-center"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#005bbf]">Bantuan</p><h2 className="mt-2 text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Pertanyaan yang Sering Diajukan</h2><p className="mt-3 text-sm leading-6 text-[#414754]">Panduan singkat untuk mengakses ruang dan akun Komunitas Belajar Guru.</p></div><FaqList /></section>
-      </div>
-
-      <footer className="bg-[#eceef0]"><div className="mx-auto grid w-full max-w-[1240px] gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4"><div className="lg:col-span-2"><div className="flex items-center gap-4"><Image src={data.school.logo_url} alt={`Logo ${data.school.name}`} width={64} height={64} className="h-16 w-16 shrink-0 object-contain" unoptimized /><span className="text-lg font-bold text-[#005bbf]">Komunitas Belajar Sekolah</span></div><p className="mt-4 max-w-md text-sm leading-6 text-[#414754]">Kolaborasi pendidik SD Negeri Dukuhwaru 01</p></div><FooterLinks title="Layanan Kombel" links={rooms.slice(0, 5).map((room) => ({ label: room.title, href: `/komunitas-belajar/${room.slug}` }))} /><FooterLinks title="Portal & Informasi" links={[{ label: "Portal Sekolah", href: "/" }, { label: "Profil Sekolah", href: "#profil-sekolah" }, { label: "Tim Komunitas", href: "#guru" }, { label: "Bantuan", href: "#faq" }]} /></div><div className="border-t border-[#cbd5e1] px-4 py-5 text-center text-xs text-[#475569] sm:px-6">© {new Date().getFullYear()} Komunitas Belajar Guru SD Negeri Dukuhwaru 01.</div></footer>
       <AccessibilityWidget theme={accessibilityTheme} onThemeChange={setAccessibilityTheme} />
-    </main>
+    </>
   );
 }
 
 function RoomCard({ room }: { room: Room }) {
   const Icon = room.icon;
-  return <Link href={`/komunitas-belajar/${room.slug}`} className="group flex min-h-64 flex-col items-center justify-center border border-[#e2e8f0] bg-white p-6 text-center shadow-[0_2px_8px_-2px_rgba(15,23,42,.04),0_1px_3px_-1px_rgba(15,23,42,.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(26,115,232,.08),0_4px_10px_-2px_rgba(15,23,42,.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]"><span className={`flex h-16 w-16 items-center justify-center rounded-2xl ${room.tone} ${room.iconTone} transition duration-200 group-hover:scale-105`}><Icon size={31} aria-hidden="true" /></span><h3 className="mt-4 text-base font-semibold text-[#191c1e] group-hover:text-[#005bbf]">{room.title}</h3><p className="mt-1 text-xs leading-5 text-[#475569]">{room.description}</p><span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-[#005bbf]">{room.meta}<ChevronRight size={14} aria-hidden="true" /></span></Link>;
+  return (
+    <Link
+      href={`/komunitas-belajar/${room.slug}`}
+      className="group flex min-h-64 flex-col items-center justify-center border border-[#e2e8f0] bg-white p-6 text-center shadow-[0_2px_8px_-2px_rgba(15,23,42,.04),0_1px_3px_-1px_rgba(15,23,42,.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(26,115,232,.08),0_4px_10px_-2px_rgba(15,23,42,.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]"
+    >
+      <span
+        className={`kb-room-icon kb-room-icon-${room.slug} flex h-16 w-16 items-center justify-center rounded-2xl ${room.tone} ${room.iconTone} transition duration-200 group-hover:scale-105`}
+      >
+        <Icon size={31} aria-hidden="true" />
+      </span>
+      <h3 className="mt-4 text-base font-semibold text-[#191c1e] group-hover:text-[#005bbf]">
+        {room.title}
+      </h3>
+      <p className="mt-1 text-xs leading-5 text-[#475569]">{room.description}</p>
+      <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-[#005bbf]">
+        {room.meta}
+        <ChevronRight size={14} aria-hidden="true" />
+      </span>
+    </Link>
+  );
 }
 
-function FaqList() {
+function FaqList({ items }: { items: FaqItem[] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  return <div className="space-y-3">{faqItems.map((item, index) => <div key={item.question} className="overflow-hidden border border-[#e2e8f0] bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,.04)]"><button type="button" aria-expanded={openIndex === index} onClick={() => setOpenIndex((current) => current === index ? null : index)} className="flex min-h-14 w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-[#191c1e] hover:text-[#005bbf] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#005bbf]"><span>{item.question}</span><ChevronRight size={19} className={`shrink-0 text-[#727785] transition-transform ${openIndex === index ? "rotate-90 text-[#005bbf]" : ""}`} aria-hidden="true" /></button>{openIndex === index && <div className="border-t border-[#e2e8f0] px-5 pb-5 pt-4 text-sm leading-6 text-[#475569]">{item.answer}</div>}</div>)}</div>;
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={item.id ?? item.question} className="overflow-hidden border border-[#e2e8f0] bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,.04)]">
+          <button
+            type="button"
+            aria-expanded={openIndex === index}
+            onClick={() => setOpenIndex((current) => current === index ? null : index)}
+            className="flex min-h-14 w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-[#191c1e] hover:text-[#005bbf] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#005bbf]"
+          >
+            <span>{item.question}</span>
+            <ChevronRight size={19} className={`shrink-0 text-[#727785] transition-transform ${openIndex === index ? "rotate-90 text-[#005bbf]" : ""}`} aria-hidden="true" />
+          </button>
+          {openIndex === index && (
+            <div className="border-t border-[#e2e8f0] px-5 pb-5 pt-4 text-sm leading-6 text-[#475569] whitespace-pre-wrap">
+              {item.answer}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function FooterLinks({ title, links }: { title: string; links: { label: string; href: string }[] }) {

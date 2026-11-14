@@ -216,3 +216,75 @@ html[data-kb-contrast="high"] .kb-public-root { filter: contrast(1.22) saturate(
 .kb-public-root.kb-theme-dark .kb-community-hero a.border-\[\#005bbf\]\/40 { color: #005bbf !important; }
 .kb-public-root.kb-theme-dark dl dt { background-color: #334155 !important; color: #f8fafc !important; }
 .kb-public-root.kb-theme-dark dl dd { background-color: #1f2937 !important; color: #f8fafc !important; }
+
+/* Dark mode room cards icon styling with high contrast */
+.kb-public-root.kb-theme-dark .kb-room-icon {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon svg {
+  stroke-width: 2.2px !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-sk-komunitas-belajar {
+  background-color: rgba(30, 64, 175, 0.35) !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-sk-komunitas-belajar,
+.kb-public-root.kb-theme-dark .kb-room-icon-sk-komunitas-belajar svg {
+  color: #60a5fa !important;
+  stroke: #60a5fa !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-materi-kegiatan {
+  background-color: rgba(194, 65, 12, 0.35) !important;
+  border-color: rgba(251, 146, 60, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-materi-kegiatan,
+.kb-public-root.kb-theme-dark .kb-room-icon-materi-kegiatan svg {
+  color: #fb923c !important;
+  stroke: #fb923c !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-daftar-hadir {
+  background-color: rgba(22, 101, 52, 0.35) !important;
+  border-color: rgba(74, 222, 128, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-daftar-hadir,
+.kb-public-root.kb-theme-dark .kb-room-icon-daftar-hadir svg {
+  color: #4ade80 !important;
+  stroke: #4ade80 !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-upload-tugas-kombel {
+  background-color: rgba(157, 23, 77, 0.35) !important;
+  border-color: rgba(244, 114, 182, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-upload-tugas-kombel,
+.kb-public-root.kb-theme-dark .kb-room-icon-upload-tugas-kombel svg {
+  color: #f472b6 !important;
+  stroke: #f472b6 !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-dokumentasi-kegiatan {
+  background-color: rgba(107, 33, 168, 0.35) !important;
+  border-color: rgba(192, 132, 252, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-dokumentasi-kegiatan,
+.kb-public-root.kb-theme-dark .kb-room-icon-dokumentasi-kegiatan svg {
+  color: #c084fc !important;
+  stroke: #c084fc !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-praktik-baik-guru {
+  background-color: rgba(14, 116, 144, 0.35) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-praktik-baik-guru,
+.kb-public-root.kb-theme-dark .kb-room-icon-praktik-baik-guru svg {
+  color: #38bdf8 !important;
+  stroke: #38bdf8 !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-forum-diskusi-guru {
+  background-color: rgba(133, 77, 14, 0.35) !important;
+  border-color: rgba(250, 204, 21, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-room-icon-forum-diskusi-guru,
+.kb-public-root.kb-theme-dark .kb-room-icon-forum-diskusi-guru svg {
+  color: #facc15 !important;
+  stroke: #facc15 !important;
+}
