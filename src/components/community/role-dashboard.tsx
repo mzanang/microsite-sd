@@ -32,7 +32,7 @@ const workspaceMenuMap: Record<string, { title: string; description: string }> =
   praktik_baik: { title: "Praktik Baik", description: "Kumpulan pengalaman pembelajaran yang dibagikan oleh anggota komunitas." },
   forum: { title: "Forum Diskusi", description: "Ruang untuk bertukar pertanyaan dan pengalaman pembelajaran." },
   memberikan_tugas: { title: "Buat Tugas Kombel", description: "Tambahkan persyaratan administrasi yang akan dikerjakan oleh anggota." },
-  upload_tugas: { title: "Upload Tugas", description: "Kirim dokumen atau link tugas yang diminta Ketua Kombel." },
+  upload_tugas: { title: "Tugas Masuk", description: "Pantau pengumpulan tugas dan hasil verifikasi guru." },
   tugas_kombel: { title: "Tugas Kombel", description: "Lihat persyaratan yang perlu diselesaikan dan buka ruang pengumpulan." },
   tugas: { title: "Tugas Kombel", description: "Lihat persyaratan yang perlu diselesaikan dan kelola pengumpulan tugas." },
   pengumpulan_anggota: { title: "Tugas Masuk", description: "Pantau nama pengirim, peran, dan tanggal pengumpulan tugas anggota." },
@@ -78,8 +78,7 @@ const roleConfig: Record<DashboardView, { label: string; groups: MenuGroup[] }> 
     label: "Kepala Sekolah",
     groups: [
       { items: [{ key: "dashboard", label: "Dashboard", href: "/komunitas-belajar/ks/dashboard", icon: Home }] },
-      { label: "KEGIATAN KOMUNITAS", items: [{ key: "upload_sk", label: "Upload SK", href: workspaceHref("upload_sk"), icon: FileText }, { key: "materi", label: "Materi Kegiatan", href: workspaceHref("materi"), icon: BookOpen }, { key: "dokumentasi", label: "Dokumentasi", href: workspaceHref("dokumentasi"), icon: ImageIcon }, { key: "praktik_baik", label: "Praktik Baik", href: workspaceHref("praktik_baik"), icon: Star }, { key: "forum", label: "Forum Diskusi", href: workspaceHref("forum"), icon: MessageCircle }, { key: "upload_tugas", label: "Tugas Masuk", href: workspaceHref("upload_tugas"), icon: Paperclip }] },
-      { label: "MONITORING", items: [{ key: "monitoring", label: "Monitoring Anggota", href: workspaceHref("monitoring"), icon: UsersRound }, { key: "verifikasi", label: "Verifikasi Tugas", href: workspaceHref("verifikasi"), icon: ShieldCheck }, { key: "grafik", label: "Grafik & Statistik", href: workspaceHref("grafik"), icon: BarChart3 }, { key: "laporan_kegiatan", permissionKey: "monitoring", label: "Laporan Kegiatan", href: workspaceHref("laporan_kegiatan"), icon: FileText }] },
+      { label: "KEGIATAN KOMUNITAS", items: [{ key: "upload_sk", label: "Upload SK", href: workspaceHref("upload_sk"), icon: FileText }, { key: "materi", label: "Materi Kegiatan", href: workspaceHref("materi"), icon: BookOpen }, { key: "dokumentasi", label: "Dokumentasi", href: workspaceHref("dokumentasi"), icon: ImageIcon }, { key: "praktik_baik", label: "Praktik Baik", href: workspaceHref("praktik_baik"), icon: Star }, { key: "forum", label: "Forum Diskusi", href: workspaceHref("forum"), icon: MessageCircle }, { key: "upload_tugas", label: "Tugas Masuk", href: workspaceHref("upload_tugas"), icon: ClipboardCheck }] },
       { label: "INFORMASI", items: [{ key: "jadwal_kegiatan", permissionKey: "daftar_hadir", label: "Jadwal Kegiatan", href: workspaceHref("jadwal_kegiatan"), icon: CalendarCheck2 }, { key: "profil", label: "Profil Saya", href: workspaceHref("profil"), icon: Settings }] },
     ],
   },
@@ -87,8 +86,7 @@ const roleConfig: Record<DashboardView, { label: string; groups: MenuGroup[] }> 
     label: "Pengawas Dabin",
     groups: [
       { items: [{ key: "dashboard", label: "Dashboard", href: "/komunitas-belajar/pengawas/dashboard", icon: Home }] },
-      { label: "KEGIATAN KOMUNITAS", items: [{ key: "upload_sk", label: "Upload SK", href: workspaceHref("upload_sk"), icon: FileText }, { key: "materi", label: "Materi Kegiatan", href: workspaceHref("materi"), icon: BookOpen }, { key: "dokumentasi", label: "Dokumentasi", href: workspaceHref("dokumentasi"), icon: ImageIcon }, { key: "praktik_baik", label: "Praktik Baik", href: workspaceHref("praktik_baik"), icon: Star }, { key: "forum", label: "Forum Diskusi", href: workspaceHref("forum"), icon: MessageCircle }, { key: "upload_tugas", label: "Tugas Masuk", href: workspaceHref("upload_tugas"), icon: Paperclip }] },
-      { label: "MONITORING", items: [{ key: "monitoring", label: "Monitoring Anggota", href: workspaceHref("monitoring"), icon: UsersRound }, { key: "verifikasi", label: "Monitoring Tugas", href: workspaceHref("verifikasi"), icon: ShieldCheck }, { key: "grafik", label: "Grafik & Statistik", href: workspaceHref("grafik"), icon: BarChart3 }, { key: "laporan_kegiatan", permissionKey: "monitoring", label: "Laporan Kegiatan", href: workspaceHref("laporan_kegiatan"), icon: FileText }] },
+      { label: "KEGIATAN KOMUNITAS", items: [{ key: "upload_sk", label: "Upload SK", href: workspaceHref("upload_sk"), icon: FileText }, { key: "materi", label: "Materi Kegiatan", href: workspaceHref("materi"), icon: BookOpen }, { key: "dokumentasi", label: "Dokumentasi", href: workspaceHref("dokumentasi"), icon: ImageIcon }, { key: "praktik_baik", label: "Praktik Baik", href: workspaceHref("praktik_baik"), icon: Star }, { key: "forum", label: "Forum Diskusi", href: workspaceHref("forum"), icon: MessageCircle }, { key: "upload_tugas", label: "Tugas Masuk", href: workspaceHref("upload_tugas"), icon: ClipboardCheck }] },
       { label: "INFORMASI", items: [{ key: "jadwal_kegiatan", permissionKey: "daftar_hadir", label: "Jadwal Kegiatan", href: workspaceHref("jadwal_kegiatan"), icon: CalendarCheck2 }, { key: "profil", label: "Profil Saya", href: workspaceHref("profil"), icon: Settings }] },
     ],
   },
@@ -319,7 +317,11 @@ function Sidebar({ config, allowedMenus, collapsed, mobileOpen, onClose }: { con
         </div>
         <nav className={`min-h-0 flex-1 overflow-y-auto py-5 ${collapsed ? "px-3 lg:px-2" : "px-4"}`}>
           {config.groups.map((group, groupIndex) => {
-            const items = group.items.filter((item) => allowedMenus.has(item.permissionKey ?? item.key));
+            const items = group.items.filter((item) => {
+              if (allowedMenus.has(item.permissionKey ?? item.key)) return true;
+              if (item.key === "upload_tugas" && (allowedMenus.has("verifikasi") || allowedMenus.has("upload_tugas"))) return true;
+              return false;
+            });
             if (!items.length) return null;
             return (
               <div key={`${group.label ?? "main"}-${groupIndex}`} className={groupIndex ? "mt-6" : ""}>

@@ -532,15 +532,15 @@ export function ReviewManager({ canReview }: { canReview: boolean }) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1970d2]">
-              Pemeriksaan & Verifikasi Tugas
+              {canReview ? "Pemeriksaan & Verifikasi Tugas" : "Monitoring Tugas Masuk"}
             </p>
             <h1 className="mt-2 text-2xl font-extrabold text-[#102d62] sm:text-3xl">
-              {canReview ? "Verifikasi Tugas Guru" : "Monitoring Tugas Guru"}
+              {canReview ? "Tugas Masuk & Verifikasi" : "Tugas Masuk Guru"}
             </h1>
             <p className="mt-2 text-sm leading-6 text-[#6683a6] max-w-2xl">
               {canReview
                 ? "Pilih tugas pertemuan, periksa dokumen administrasi yang dikumpulkan guru, dan simpan hasil verifikasi."
-                : "Pengawas Dabin dapat memantau status pengumpulan dan hasil verifikasi Kepala Sekolah secara transparan."}
+                : "Pengawas Dabin dapat memantau status pengumpulan tugas masuk dan hasil verifikasi Kepala Sekolah secara transparan."}
             </p>
           </div>
 

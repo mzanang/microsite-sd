@@ -66,8 +66,8 @@ const fallbackPermissions: Record<DashboardView, DashboardPermission[]> = {
   ketua: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "memberikan_tugas", "daftar_hadir", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "dashboard" || menu_key === "profil" ? "lihat" : "kelola" })),
   sekretaris: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "memberikan_tugas", "daftar_hadir", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "dashboard" || menu_key === "profil" ? "lihat" : "kelola" })),
   anggota: ["dashboard", "materi", "forum", "upload_tugas", "daftar_hadir", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "dashboard" || menu_key === "materi" || menu_key === "forum" ? "lihat" : "kelola" })),
-  ks: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "daftar_hadir", "verifikasi", "grafik", "monitoring", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "daftar_hadir" ? "monitoring" : menu_key === "verifikasi" || menu_key === "profil" ? "kelola" : "lihat" })),
-  pengawas: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "daftar_hadir", "verifikasi", "grafik", "monitoring", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "daftar_hadir" ? "monitoring" : menu_key === "profil" ? "kelola" : "lihat" })),
+  ks: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "daftar_hadir", "verifikasi", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "daftar_hadir" ? "monitoring" : menu_key === "verifikasi" || menu_key === "upload_tugas" || menu_key === "profil" ? "kelola" : "lihat" })),
+  pengawas: ["dashboard", "upload_sk", "materi", "dokumentasi", "praktik_baik", "forum", "upload_tugas", "daftar_hadir", "verifikasi", "profil"].map((menu_key) => ({ menu_key, access_level: menu_key === "daftar_hadir" || menu_key === "upload_tugas" ? "monitoring" : menu_key === "profil" ? "kelola" : "lihat" })),
 };
 
 export const getRoleDashboardData = cache(async (profile: KbProfile, view: DashboardView): Promise<RoleDashboardData> => {
@@ -131,7 +131,14 @@ export const getRoleDashboardData = cache(async (profile: KbProfile, view: Dashb
     })),
     notificationCount: notificationCount ?? 0,
     scopeNote: isMember ? `Menampilkan data pengumpulan milik ${profile.full_name}.` : "Menampilkan data komunitas berdasarkan kewenangan akun Anda.",
-    permissions: permissionRows?.length ? permissionRows as DashboardPermission[] : fallbackPermissions[view],
+    permissions: (() => {
+      const base = (permissionRows?.length ? (permissionRows as DashboardPermission[]) : fallbackPermissions[view]);
+      const list = [...base];
+      if (list.some((p) => p.menu_key === "verifikasi") && !list.some((p) => p.menu_key === "upload_tugas")) {
+        list.push({ menu_key: "upload_tugas", access_level: view === "ks" ? "kelola" : "monitoring" });
+      }
+      return list;
+    })(),
     requirements: (requirements ?? []).map((requirement) => {
       const submission = effectiveSubmissionRows.find((item) => item.requirement_id === requirement.id);
       const session = requirement.attendance_session_id ? sessionMap.get(requirement.attendance_session_id) : null;

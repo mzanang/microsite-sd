@@ -115,16 +115,16 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
                     key={opt.key}
                     type="button"
                     onClick={() => setSelectedFilter(opt.key)}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${
+                    className={`kb-team-filter-pill inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${
                       active
-                        ? "bg-[#005bbf] text-white shadow-sm"
-                        : "bg-[#f1f5f9] text-[#475569] hover:bg-[#e2e8f0] hover:text-[#191c1e]"
+                        ? "is-active bg-[#005bbf] text-white shadow-sm"
+                        : "bg-[#e2e8f0] text-[#1e293b] hover:bg-[#cbd5e1] hover:text-black"
                     }`}
                   >
                     <span>{opt.label}</span>
                     <span
-                      className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
-                        active ? "bg-white/20 text-white" : "bg-[#cbd5e1] text-[#334155]"
+                      className={`kb-pill-count inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
+                        active ? "bg-white/20 text-white" : "bg-[#cbd5e1] text-[#0f172a]"
                       }`}
                     >
                       {count}

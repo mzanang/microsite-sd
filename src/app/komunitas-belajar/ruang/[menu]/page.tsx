@@ -12,7 +12,7 @@ const menuDefinitions: Record<string, { title: string; permissionKey: string }> 
   praktik_baik: { title: "Praktik Baik", permissionKey: "praktik_baik" },
   forum: { title: "Forum Diskusi", permissionKey: "forum" },
   memberikan_tugas: { title: "Buat Tugas Kombel", permissionKey: "memberikan_tugas" },
-  upload_tugas: { title: "Upload Tugas", permissionKey: "upload_tugas" },
+  upload_tugas: { title: "Tugas Masuk", permissionKey: "upload_tugas" },
   tugas_kombel: { title: "Tugas Kombel", permissionKey: "upload_tugas" },
   tugas: { title: "Tugas Kombel", permissionKey: "upload_tugas" },
   pengumpulan_anggota: { title: "Tugas Masuk", permissionKey: "upload_tugas" },

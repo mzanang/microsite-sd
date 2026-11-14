@@ -288,3 +288,31 @@ html[data-kb-contrast="high"] .kb-public-root { filter: contrast(1.22) saturate(
   color: #facc15 !important;
   stroke: #facc15 !important;
 }
+
+/* Filter button unselected in dark mode on #guru (abu-abu tulisan hitam) */
+.kb-public-root.kb-theme-dark .kb-team-filter-pill:not(.is-active) {
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  border: 1px solid #94a3b8 !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-filter-pill:not(.is-active) span {
+  color: #0f172a !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-filter-pill:not(.is-active) .kb-pill-count {
+  background-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-filter-pill:not(.is-active):hover {
+  background-color: #e2e8f0 !important;
+  color: #000000 !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-filter-pill:not(.is-active):hover span {
+  color: #000000 !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-filter-pill.is-active {
+  background-color: #005bbf !important;
+  color: #ffffff !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-filter-pill.is-active span {
+  color: #ffffff !important;
+}
