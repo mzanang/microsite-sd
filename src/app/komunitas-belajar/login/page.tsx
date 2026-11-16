@@ -3,14 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, BookOpen, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { CommunityGuideModal } from "@/components/community/community-guide-modal";
 
 export default function CommunityLoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -158,8 +160,16 @@ export default function CommunityLoginPage() {
                 </span>
               </label>
 
-              {/* Lupa Kata Sandi */}
-              <div className="flex justify-end pt-0.5">
+              {/* Panduan Penggunaan & Lupa Kata Sandi */}
+              <div className="flex items-center justify-between pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowGuideModal(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] transition duration-150 hover:text-[#125FC1] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#125FC1]"
+                >
+                  <BookOpen size={13} aria-hidden="true" />
+                  <span>Panduan Penggunaan</span>
+                </button>
                 <Link
                   href="/komunitas-belajar/lupa-password"
                   className="text-xs font-semibold text-[#125FC1] transition duration-150 hover:text-[#0D4FA8] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#125FC1]"
@@ -229,6 +239,12 @@ export default function CommunityLoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Pop-up Detail Modal Panduan Pengguna */}
+      <CommunityGuideModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+      />
     </main>
   );
 }

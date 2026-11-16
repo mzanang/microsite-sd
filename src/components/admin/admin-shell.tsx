@@ -22,6 +22,7 @@ const communityNav = [
   { href: "/admin/komunitas-belajar/pengguna", label: "Pengguna komunitas", icon: UsersRound },
   { href: "/admin/komunitas-belajar/sk", label: "SK komunitas", icon: FileCheck2 },
   { href: "/admin/komunitas-belajar/profil-faq", label: "Profil & FAQ Kombel", icon: School },
+  { href: "/admin/komunitas-belajar/panduan", label: "Panduan login & peran", icon: BookOpen },
   { href: "/komunitas-belajar", label: "Lihat portal komunitas", icon: Eye },
 ];
 
