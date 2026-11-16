@@ -196,7 +196,7 @@ html[data-kb-dyslexia] .kb-public-root, html[data-kb-dyslexia] .kb-public-root *
 html[data-kb-contrast="medium"] .kb-public-root { filter: contrast(1.08) saturate(1.05); }
 html[data-kb-contrast="high"] .kb-public-root { filter: contrast(1.22) saturate(1.12); }
 .kb-public-root.kb-theme-dark, .kb-public-root.kb-theme-dark section, .kb-public-root.kb-theme-dark article, .kb-public-root.kb-theme-dark footer, .kb-public-root.kb-theme-dark header { background-color: #111827 !important; color: #f8fafc !important; border-color: #374151 !important; }
-.kb-public-root.kb-theme-dark h1, .kb-public-root.kb-theme-dark h2, .kb-public-root.kb-theme-dark h3, .kb-public-root.kb-theme-dark h4, .kb-public-root.kb-theme-dark p, .kb-public-root.kb-theme-dark span, .kb-public-root.kb-theme-dark dt, .kb-public-root.kb-theme-dark dd, .kb-public-root.kb-theme-dark a, .kb-public-root.kb-theme-dark button { color: #f8fafc !important; }
+.kb-public-root.kb-theme-dark h1, .kb-public-root.kb-theme-dark h2, .kb-public-root.kb-theme-dark h3, .kb-public-root.kb-theme-dark h4, .kb-public-root.kb-theme-dark p, .kb-public-root.kb-theme-dark span, .kb-public-root.kb-theme-dark strong, .kb-public-root.kb-theme-dark dt, .kb-public-root.kb-theme-dark dd, .kb-public-root.kb-theme-dark th, .kb-public-root.kb-theme-dark td, .kb-public-root.kb-theme-dark a, .kb-public-root.kb-theme-dark button { color: #f8fafc !important; }
 .kb-public-root.kb-theme-dark input, .kb-public-root.kb-theme-dark select, .kb-public-root.kb-theme-dark textarea { background-color: #1f2937 !important; color: #f8fafc !important; border-color: #6b7280 !important; }
 .kb-public-root.kb-theme-dark a.group { background-color: #1f2937 !important; border-color: #475569 !important; }
 .kb-public-root.kb-theme-dark a.group h3, .kb-public-root.kb-theme-dark a.group p, .kb-public-root.kb-theme-dark a.group span { color: #f8fafc !important; }
@@ -288,6 +288,14 @@ html[data-kb-contrast="high"] .kb-public-root { filter: contrast(1.22) saturate(
   color: #facc15 !important;
   stroke: #facc15 !important;
 }
+.kb-public-root.kb-theme-dark .kb-room-icon-ruang-gtk {
+  background-color: rgba(2, 136, 209, 0.3) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-space-icon-box {
+  background-color: #111827 !important;
+  border: 1px solid #374151 !important;
+}
 
 /* Filter button unselected in dark mode on #guru (abu-abu tulisan hitam) */
 .kb-public-root.kb-theme-dark .kb-team-filter-pill:not(.is-active) {
@@ -315,4 +323,156 @@ html[data-kb-contrast="high"] .kb-public-root { filter: contrast(1.22) saturate(
 }
 .kb-public-root.kb-theme-dark .kb-team-filter-pill.is-active span {
   color: #ffffff !important;
+}
+
+/* ========================================================
+   DARK MODE STYLES FOR #guru (Struktur Keanggotaan & Tabel)
+   ======================================================== */
+
+/* Section & Cards background */
+.kb-public-root.kb-theme-dark #guru {
+  background-color: #0b1324 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-total-badge {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-total-badge strong {
+  color: #60a5fa !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-search-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-search-input {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-search-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-summary-text {
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-summary-text strong {
+  color: #60a5fa !important;
+}
+
+/* Tabel Desktop */
+.kb-public-root.kb-theme-dark .kb-team-table-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-table-head {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-table-head th {
+  background-color: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-table-row {
+  border-color: #334155 !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-table-row:hover {
+  background-color: #283548 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-col-no {
+  color: #60a5fa !important;
+}
+
+/* Kolom Nama Lengkap & Avatar Icon */
+.kb-public-root.kb-theme-dark .kb-team-avatar {
+  background-color: rgba(30, 58, 138, 0.6) !important;
+  border: 1px solid rgba(96, 165, 250, 0.4) !important;
+  color: #60a5fa !important;
+}
+.kb-public-root.kb-theme-dark .kb-team-avatar svg {
+  color: #60a5fa !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-col-name {
+  color: #f8fafc !important;
+}
+
+/* Kolom Jenis Guru & Kelas / Mapel */
+.kb-public-root.kb-theme-dark .kb-team-col-type,
+.kb-public-root.kb-theme-dark .kb-team-col-grade {
+  color: #e2e8f0 !important;
+}
+
+/* Role Badges di mode gelap */
+.kb-public-root.kb-theme-dark .kb-role-badge-pengawas {
+  background-color: rgba(30, 58, 138, 0.45) !important;
+  border-color: rgba(96, 165, 250, 0.45) !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-pengawas .kb-badge-text {
+  color: #93c5fd !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-pengawas .kb-badge-dot {
+  background-color: #60a5fa !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-role-badge-ks {
+  background-color: rgba(88, 28, 135, 0.45) !important;
+  border-color: rgba(192, 132, 252, 0.45) !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-ks .kb-badge-text {
+  color: #d8b4fe !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-ks .kb-badge-dot {
+  background-color: #c084fc !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-role-badge-pengurus {
+  background-color: rgba(6, 78, 59, 0.45) !important;
+  border-color: rgba(52, 211, 153, 0.45) !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-pengurus .kb-badge-text {
+  color: #6ee7b7 !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-pengurus .kb-badge-dot {
+  background-color: #34d399 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-role-badge-anggota {
+  background-color: rgba(51, 65, 85, 0.6) !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-anggota .kb-badge-text {
+  color: #e2e8f0 !important;
+}
+.kb-public-root.kb-theme-dark .kb-role-badge-anggota .kb-badge-dot {
+  background-color: #94a3b8 !important;
+}
+
+/* Mobile Cards di mode gelap */
+.kb-public-root.kb-theme-dark .kb-team-mobile-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-mobile-subbox {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-mobile-subbox span:first-child {
+  color: #94a3b8 !important;
+}
+
+.kb-public-root.kb-theme-dark .kb-team-mobile-subbox span:last-child {
+  color: #f8fafc !important;
 }

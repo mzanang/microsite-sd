@@ -29,7 +29,17 @@ import {
   type SchoolProfileField,
 } from "@/lib/community-landing-config";
 
-type Room = { slug: string; title: string; description: string; meta: string; icon: LucideIcon; tone: string; iconTone: string };
+type Room = {
+  slug: string;
+  title: string;
+  description: string;
+  meta: string;
+  icon?: LucideIcon;
+  imageSrc?: string;
+  tone: string;
+  iconTone: string;
+  externalUrl?: string;
+};
 
 const rooms: Room[] = [
   { slug: "sk-komunitas-belajar", title: "SK & Regulasi Kombel", description: "SK Kepala Sekolah", meta: "Dokumen resmi", icon: ShieldCheck, tone: "bg-[#e3f2fd]", iconTone: "text-[#005bbf]" },
@@ -39,6 +49,16 @@ const rooms: Room[] = [
   { slug: "dokumentasi-kegiatan", title: "Dokumentasi & Galeri", description: "Catatan visual kegiatan komunitas", meta: "Lihat dokumentasi", icon: Camera, tone: "bg-[#ede7f6]", iconTone: "text-[#6a1b9a]" },
   { slug: "praktik-baik-guru", title: "Praktik Baik Guru", description: "Berbagi strategi pembelajaran", meta: "Jelajahi praktik", icon: UsersRound, tone: "bg-[#e0f7fa]", iconTone: "text-[#00677d]" },
   { slug: "forum-diskusi-guru", title: "Forum Diskusi Guru", description: "Ruang bertukar pengalaman", meta: "Buka ruang diskusi", icon: UsersRound, tone: "bg-[#fff8e1]", iconTone: "text-[#a15c00]" },
+  {
+    slug: "ruang-gtk",
+    title: "Ruang GTK",
+    description: "Portal resmi Ruang GTK Kemendikbudristek",
+    meta: "Buka portal",
+    imageSrc: "/RUANG_GTK.png",
+    tone: "bg-[#e1f5fe]",
+    iconTone: "text-[#0288d1]",
+    externalUrl: "https://rumah.pendidikan.go.id/ruang/gtk",
+  },
 ];
 
 export function CommunityLanding({
@@ -103,7 +123,7 @@ export function CommunityLanding({
               <h2 className="text-[26px] font-bold leading-9 tracking-[-.02em] text-[#191c1e] sm:text-[32px]">Ruang Kolaborasi Komunitas Belajar</h2>
               <p className="mt-3 text-sm leading-6 text-[#414754] sm:text-base">Ruang berbagi, belajar, dan berkolaborasi untuk meningkatkan kualitas pembelajaran.</p>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{filteredRooms.map((room) => <RoomCard key={room.slug} room={room} />)}</div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 justify-items-center sm:justify-items-stretch">{filteredRooms.map((room) => <RoomCard key={room.slug} room={room} />)}</div>
             {!filteredRooms.length && <div className="mt-4 border border-dashed border-[#c1c6d6] bg-white px-6 py-10 text-center"><Search className="mx-auto text-[#727785]" size={25} aria-hidden="true" /><p className="mt-3 font-bold text-[#191c1e]">Ruang tidak ditemukan</p><p className="mt-1 text-sm text-[#414754]">Coba kata kunci lain atau hapus pencarian.</p></div>}
           </section>
 
@@ -164,15 +184,25 @@ export function CommunityLanding({
 
 function RoomCard({ room }: { room: Room }) {
   const Icon = room.icon;
-  return (
-    <Link
-      href={`/komunitas-belajar/${room.slug}`}
-      className="group flex min-h-64 flex-col items-center justify-center border border-[#e2e8f0] bg-white p-6 text-center shadow-[0_2px_8px_-2px_rgba(15,23,42,.04),0_1px_3px_-1px_rgba(15,23,42,.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(26,115,232,.08),0_4px_10px_-2px_rgba(15,23,42,.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]"
-    >
+  const isExternal = Boolean(room.externalUrl);
+  const href = room.externalUrl || `/komunitas-belajar/${room.slug}`;
+
+  const cardContent = (
+    <>
       <span
         className={`kb-room-icon kb-room-icon-${room.slug} flex h-16 w-16 items-center justify-center rounded-2xl ${room.tone} ${room.iconTone} transition duration-200 group-hover:scale-105`}
       >
-        <Icon size={31} aria-hidden="true" />
+        {room.imageSrc ? (
+          <Image
+            src={room.imageSrc}
+            alt={room.title}
+            width={40}
+            height={40}
+            className="h-10 w-10 object-contain"
+          />
+        ) : Icon ? (
+          <Icon size={31} aria-hidden="true" />
+        ) : null}
       </span>
       <h3 className="mt-4 text-base font-semibold text-[#191c1e] group-hover:text-[#005bbf]">
         {room.title}
@@ -182,6 +212,23 @@ function RoomCard({ room }: { room: Room }) {
         {room.meta}
         <ChevronRight size={14} aria-hidden="true" />
       </span>
+    </>
+  );
+
+  const cardClass =
+    "group flex min-h-64 w-full max-w-sm sm:max-w-none flex-col items-center justify-center border border-[#e2e8f0] bg-white p-6 text-center shadow-[0_2px_8px_-2px_rgba(15,23,42,.04),0_1px_3px_-1px_rgba(15,23,42,.06)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(26,115,232,.08),0_4px_10px_-2px_rgba(15,23,42,.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#005bbf]";
+
+  if (isExternal) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={cardClass}>
+        {cardContent}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={cardClass}>
+      {cardContent}
     </Link>
   );
 }

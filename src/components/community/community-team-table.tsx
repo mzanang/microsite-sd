@@ -70,14 +70,14 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
               Mengenal pimpinan, pembina, dan anggota Komunitas Belajar Guru SD Negeri Dukuhwaru 01.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-xl border border-[#dbe6f5] bg-white px-3.5 py-2 text-xs font-semibold text-[#536f92] shadow-sm self-start sm:self-auto">
+          <div className="kb-team-total-badge flex items-center gap-2 rounded-xl border border-[#dbe6f5] bg-white px-3.5 py-2 text-xs font-semibold text-[#536f92] shadow-sm self-start sm:self-auto">
             <Users size={16} className="text-[#005bbf]" />
             <span>Total: <strong className="text-[#102d62]">{members.length}</strong> Pendidik & Pengelola</span>
           </div>
         </div>
 
         {/* Search & Filter Controls Card */}
-        <div className="mt-8 rounded-2xl border border-[#e2e8f0] bg-white p-4 sm:p-5 shadow-sm space-y-4">
+        <div className="kb-team-search-card mt-8 rounded-2xl border border-[#e2e8f0] bg-white p-4 sm:p-5 shadow-sm space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* Search Input */}
             <div className="relative flex-1">
@@ -89,7 +89,7 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari nama, jabatan, jenis guru, atau kelas/mapel..."
-                className="h-11 w-full rounded-xl border border-[#bfd2e8] bg-[#f8fbff] pl-10 pr-4 text-sm text-[#191c1e] outline-none transition placeholder:text-[#8ba2bd] focus:border-[#005bbf] focus:bg-white focus:ring-4 focus:ring-[#005bbf]/10"
+                className="kb-team-search-input h-11 w-full rounded-xl border border-[#bfd2e8] bg-[#f8fbff] pl-10 pr-4 text-sm text-[#191c1e] outline-none transition placeholder:text-[#8ba2bd] focus:border-[#005bbf] focus:bg-white focus:ring-4 focus:ring-[#005bbf]/10"
               />
               {search && (
                 <button
@@ -136,7 +136,7 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
           </div>
 
           {/* Results Summary */}
-          <div className="flex items-center justify-between border-t border-[#f1f5f9] pt-3 text-xs text-[#64748b]">
+          <div className="kb-team-summary-text flex items-center justify-between border-t border-[#f1f5f9] pt-3 text-xs text-[#64748b]">
             <span>
               Menampilkan <strong className="text-[#102d62]">{filteredMembers.length}</strong> dari{" "}
               {members.length} tenaga pendidik dan pengelola
@@ -158,11 +158,11 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
 
         {/* TAMPILAN DESKTOP — TABEL */}
         <div className="mt-6 hidden md:block">
-          <div className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+          <div className="kb-team-table-card overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
             <table className="w-full text-left border-collapse">
               <caption className="sr-only">Daftar Tim Komunitas Belajar</caption>
               <thead>
-                <tr className="border-b border-[#e2e8f0] bg-[#f8fafc] text-xs font-bold uppercase tracking-[.08em] text-[#536f92]">
+                <tr className="kb-team-table-head border-b border-[#e2e8f0] bg-[#f8fafc] text-xs font-bold uppercase tracking-[.08em] text-[#536f92]">
                   <th scope="col" className="px-5 py-4 w-16 text-center">No.</th>
                   <th scope="col" className="px-6 py-4">Nama Lengkap</th>
                   <th scope="col" className="px-6 py-4">Jenis Guru</th>
@@ -175,29 +175,29 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
                   filteredMembers.map((member, index) => (
                     <tr
                       key={member.id || `${member.name}-${index}`}
-                      className="transition-colors hover:bg-[#f8fbff]"
+                      className="kb-team-table-row transition-colors hover:bg-[#f8fbff]"
                     >
-                      <td className="px-5 py-4 text-center text-sm font-bold text-[#1264c5]">
+                      <td className="kb-team-col-no px-5 py-4 text-center text-sm font-bold text-[#1264c5]">
                         {index + 1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1264c5]">
+                          <span className="kb-team-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1264c5]">
                             <UserRound size={17} />
                           </span>
-                          <span className="font-bold text-[#102d62] text-sm">
+                          <span className="kb-team-col-name font-bold text-[#102d62] text-sm">
                             {member.name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-[#475569]">
-                        {member.teacher_type}
+                      <td className="kb-team-col-type px-6 py-4 text-sm text-[#475569]">
+                        {member.teacher_type || "-"}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="kb-team-col-role px-6 py-4">
                         <RoleBadge role={member.role} position={member.community_position} label={member.display_role} />
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-[#475569]">
-                        {member.grade_or_subject}
+                      <td className="kb-team-col-grade px-6 py-4 text-sm font-medium text-[#475569]">
+                        {member.grade_or_subject || "-"}
                       </td>
                     </tr>
                   ))
@@ -219,15 +219,15 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
             filteredMembers.map((member, index) => (
               <article
                 key={member.id || `${member.name}-${index}`}
-                className="rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm space-y-3"
+                className="kb-team-mobile-card rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1264c5]">
+                    <span className="kb-team-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f1ff] text-[#1264c5]">
                       <UserRound size={18} />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-[#102d62] text-sm leading-tight truncate">
+                      <h3 className="kb-team-col-name font-bold text-[#102d62] text-sm leading-tight truncate">
                         {member.name}
                       </h3>
                       <p className="mt-0.5 text-xs text-[#64748b]">
@@ -239,13 +239,13 @@ export function CommunityTeamTable({ members }: { members: PublicTeamMember[] })
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 border-t border-[#f1f5f9] pt-3 text-xs">
-                  <div className="rounded-xl bg-[#f8fafc] p-2.5">
+                  <div className="kb-team-mobile-subbox rounded-xl bg-[#f8fafc] p-2.5">
                     <span className="block text-[11px] font-semibold text-[#8ba2bd]">Jenis Guru</span>
-                    <span className="mt-0.5 block font-bold text-[#334155]">{member.teacher_type}</span>
+                    <span className="mt-0.5 block font-bold text-[#334155]">{member.teacher_type || "-"}</span>
                   </div>
-                  <div className="rounded-xl bg-[#f8fafc] p-2.5">
+                  <div className="kb-team-mobile-subbox rounded-xl bg-[#f8fafc] p-2.5">
                     <span className="block text-[11px] font-semibold text-[#8ba2bd]">Kelas / Mapel</span>
-                    <span className="mt-0.5 block font-bold text-[#334155]">{member.grade_or_subject}</span>
+                    <span className="mt-0.5 block font-bold text-[#334155]">{member.grade_or_subject || "-"}</span>
                   </div>
                 </div>
               </article>
@@ -273,9 +273,9 @@ function RoleBadge({
   // Pengawas Dabin: Biru
   if (role === "pengawas_dabin") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-        {label}
+      <span className="kb-role-badge kb-role-badge-pengawas inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+        <span className="kb-badge-dot h-1.5 w-1.5 rounded-full bg-blue-600" />
+        <span className="kb-badge-text">{label}</span>
       </span>
     );
   }
@@ -283,9 +283,9 @@ function RoleBadge({
   // Kepala Sekolah: Ungu
   if (role === "kepala_sekolah") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-purple-600" />
-        {label}
+      <span className="kb-role-badge kb-role-badge-ks inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700">
+        <span className="kb-badge-dot h-1.5 w-1.5 rounded-full bg-purple-600" />
+        <span className="kb-badge-text">{label}</span>
       </span>
     );
   }
@@ -293,18 +293,18 @@ function RoleBadge({
   // Ketua dan Sekretaris: Hijau
   if (position === "ketua" || position === "sekretaris") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-        {label}
+      <span className="kb-role-badge kb-role-badge-pengurus inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+        <span className="kb-badge-dot h-1.5 w-1.5 rounded-full bg-emerald-600" />
+        <span className="kb-badge-text">{label}</span>
       </span>
     );
   }
 
   // Anggota: Netral / Abu-abu
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-      <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-      {label}
+    <span className="kb-role-badge kb-role-badge-anggota inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+      <span className="kb-badge-dot h-1.5 w-1.5 rounded-full bg-slate-500" />
+      <span className="kb-badge-text">{label}</span>
     </span>
   );
 }
