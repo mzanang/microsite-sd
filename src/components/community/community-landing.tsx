@@ -52,7 +52,7 @@ const rooms: Room[] = [
   {
     slug: "ruang-gtk",
     title: "Ruang GTK",
-    description: "Portal resmi Ruang GTK Kemendikbudristek",
+    description: "Portal resmi Ruang GTK Kemendikdasmen",
     meta: "Buka portal",
     imageSrc: "/RUANG_GTK.png",
     tone: "bg-[#e1f5fe]",
