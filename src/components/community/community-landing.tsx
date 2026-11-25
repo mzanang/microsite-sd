@@ -21,6 +21,7 @@ import { CommunityHero } from "@/components/community/community-hero";
 import { CommunityNav } from "@/components/community/community-nav";
 import { CommunityTeamTable } from "@/components/community/community-team-table";
 import { AccessibilityWidget, type AccessibilityTheme } from "@/components/community/accessibility-widget";
+import GlowCursor from "@/components/community/glow-cursor";
 import type { PublicCommunityData, PublicCommunityProfile } from "@/lib/community-data";
 import {
   type CommunityLandingConfig,
@@ -111,6 +112,22 @@ export function CommunityLanding({
   return (
     <>
       <main className={`kb-public-root min-h-screen overflow-x-hidden font-[var(--font-plus-jakarta)] text-[#191c1e] ${accessibilityTheme === "dark" ? "kb-theme-dark" : "kb-theme-light"}`}>
+        <div className="pointer-events-none fixed inset-0 z-[1] h-[100dvh] w-full" aria-hidden="true">
+          <GlowCursor
+            className="h-full w-full"
+            color="#5f8bff"
+            secondaryColor="#5f8bff"
+            intensity={0.9}
+            trailWidth={2.5}
+            linger={1}
+            glow={1.1}
+            hotspot={0.85}
+            followSpeed={0.7}
+            quality="medium"
+            theme="light"
+            clickBurst
+          />
+        </div>
         <CommunityNav schoolName={data.school.name} logoUrl={data.school.logo_url} searchValue={searchQuery} onSearchChange={setSearchQuery} />
 
         <div id="beranda" className="w-full scroll-mt-40 pt-[9rem] sm:pt-[9rem]">
